@@ -117,7 +117,7 @@ public class ProxyWebClientUtils {
 			// Context path starts with a / if it is not blank
 			curUrl.append(serverRequestUriInfo.getContextPath());
 			// Servlet path starts with a / if it is not blank
-			curUrl.append(serverRequestUriInfo.getServletPath());
+			curUrl.append(serverRequestUriInfo.getProxyPath());
 			// Added by David A. Bauer, handles urlPattern, if given
 			if (serverRequestUriInfo.getPathInfo() != null && withRequestPathInfo)
 				curUrl.append(urlPattern.replace("/*", ""));
