@@ -232,7 +232,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				return;
 			
 			
-			logger().debug("HTTPProxyClient::Request: " + headerName + ":" + headerValue); // debug
+			logger().debug("ProxyWebClient::Request: " + headerName + ":" + headerValue); // debug
 			// In case the proxy host is running multiple virtual servers,
 			// rewrite the Host header to ensure that we get content from
 			// the correct virtual server
@@ -284,7 +284,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * overwritten to filter out certain headers if desired.
 	 */
 	protected void copyResponseHeader(RoutingContext routingContext, String domain, String targetUri, Entry<String, String> header, boolean withRequestPathInfo, String urlPattern) {
-		logger().debug("HTTPProxyClient::Response: " + header.getKey() + ":" + header.getValue());
+		logger().debug("ProxyWebClient::Response: " + header.getKey() + ":" + header.getValue());
 		String headerName = header.getKey();
 		if (hopByHopHeaders.containsKey(headerName))
 			return;
