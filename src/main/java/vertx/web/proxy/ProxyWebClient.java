@@ -13,6 +13,7 @@ import java.util.function.Function;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -22,6 +23,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import vertx.web.porxy.utils.CircuitBreakerForWebClient;
+import vertx.web.porxy.utils.URIInfo;
 
 public class ProxyWebClient extends AbstractProxyWebClient {
 	public static final int SC_NOT_MODIFIED = 304;
@@ -29,8 +32,8 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	protected Function<String, Boolean> cookieFilterRequest;
 	protected Function<HttpCookie, Boolean> cookieFilterResponse;
 	
-	public ProxyWebClient(WebClient proxyClient, ProxyWebClientOptions proxyWebClientOptions, String domain) {
-		super(proxyClient, proxyWebClientOptions, domain);
+	public ProxyWebClient(WebClient proxyClient, ProxyWebClientOptions proxyWebClientOptions, CircuitBreakerForWebClient circuitBreakerForWebClient) {
+		super(proxyClient, proxyWebClientOptions, circuitBreakerForWebClient);
 	}
 	
 	public void setCookieFilterRequest(Function<String, Boolean> cookieFilterRequest) {
@@ -40,10 +43,15 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	public void setCookieFilterResponse(Function<HttpCookie, Boolean> cookieFilterResponse) {
 		this.cookieFilterResponse = cookieFilterResponse;
 	}
+	
+	public void execute(RoutingContext routingContext, String domain, String targetUri) {
+		execute(routingContext, domain, targetUri, (future) -> 
+			doExecute(routingContext, domain, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), new MutableBoolean(true), null, false, null, null, future));
+	}
 
-	public void execute(RoutingContext routingContext, String targetUri,
+	protected void doExecute(RoutingContext routingContext, String domain, String targetUri,
 			URI targetObj, String pathInfo, final MutableBoolean resource, final Function<Entry<String, String>, Boolean> filter,
-			boolean withRequestPathInfo, String urlPattern, Function<byte[], byte[]> contentFilter) {
+			boolean withRequestPathInfo, String urlPattern, Function<byte[], byte[]> contentFilter, Future<Object> future) {
 		Handler<AsyncResult<HttpResponse<Buffer>>> handler = asyncResult -> {
 			byte[] result = null;
 			if (asyncResult.succeeded()) {
@@ -87,7 +95,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					}
 				};
 				
-				copyResponseHeaders(asyncResult.result(), routingContext, targetUri, filterInternal, withRequestPathInfo, urlPattern);
+				copyResponseHeaders(asyncResult.result(), routingContext, domain, targetUri, filterInternal, withRequestPathInfo, urlPattern);
 				
 				if (enabled)
 					resource.setValue(!(contentDisposition.isFalse() && contentTypeHTML.isTrue()));
@@ -112,12 +120,14 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 							}
 							else
 								routingContext.response().write(buffer);
-							routingContext.response().end();
 						}
 					}
 				}
+				routingContext.response().end();
+				future.complete();
+			
+				// do something with "result"!?
 			}
-			// do something with "result"!?
 		};
 		
 		// Make the Request
@@ -126,27 +136,20 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		HttpMethod method = routingContext.request().method();
 		String proxyRequestUri = rewriteUrlFromRequest(routingContext, targetUri, pathInfo, withRequestPathInfo,
 				urlPattern);
-		logger().debug("HTTPProxyClient::Request: "+proxyRequestUri);
+		logger().debug("ProxyWebClient::Request: "+proxyRequestUri);
 		
 		HttpRequest<Buffer> proxyRequest = proxyClient
 				.request(method, targetObj.getHost(), proxyRequestUri)
 				.ssl(proxyWebClientOptions.doSSL);
 				
+		if (proxyWebClientOptions.doLog)
+			logger().info(routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " -- " + proxyRequestUri);
 		
-		/*
-		// spec: RFC 2616, sec 4.3: either of these two headers signal that
-		// there is a message body.
-		if (routingContext.request().getHeader("Content-Length") != null
-				|| routingContext.request().getHeader("Transfer-Encoding") != null) {
-			proxyRequest = newProxyRequestWithEntity(method, proxyRequestUri, serverRequest);
-		} else {
-			proxyRequest = new BasicHttpRequest(method, proxyRequestUri);
-		}
-		*/
+		copyRequestHeaders(routingContext, proxyRequest, domain, targetObj);
 
-		copyRequestHeaders(routingContext, proxyRequest, targetObj);
-
-		setXForwardedForHeader(routingContext, proxyRequest);		
+		setXForwardedForHeader(routingContext, proxyRequest);
+		
+		proxyRequest.send(handler);		
 	}
 	
 	/**
@@ -163,7 +166,6 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		uri.append(targetUri);
 		// Handle the path given to the servlet
 		// changed by David A. Bauer
-		URIInfo serverRequestUriInfo = URIInfo.create(routingContext.request().absoluteURI(), domain);
 		if (pathInfo != null)
 			uri.append(encodeUriQuery(pathInfo, true));
 		else if (serverRequestUriInfo.getPathInfo() != null && withRequestPathInfo) {
@@ -216,7 +218,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * Copy request headers from the servlet client to the proxy request. This
 	 * is easily overridden to add your own.
 	 */
-	protected void copyRequestHeaders(RoutingContext routingContext, HttpRequest<Buffer> proxyRequest, URI targetObj) {
+	protected void copyRequestHeaders(RoutingContext routingContext, HttpRequest<Buffer> proxyRequest, String domain, URI targetObj) {
 		Iterator<Entry<String, String>> headers = routingContext.request().headers().iterator();
 		while (headers.hasNext()) {// sometimes more than one value
 			Entry<String, String> header = headers.next();
@@ -264,16 +266,16 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	}
 	
 	/** Copy proxied response headers back to the servlet client. */
-	protected void copyResponseHeaders(HttpResponse<Buffer> proxyResponse, RoutingContext routingContext, 
+	protected void copyResponseHeaders(HttpResponse<Buffer> proxyResponse, RoutingContext routingContext, String domain,
 			String targetUri, Function<Entry<String, String>, Boolean> filter, boolean withRequestPathInfo, String urlPattern) {
 		Iterator<Entry<String, String>> headers = proxyResponse.headers().iterator();
 		while (headers.hasNext()) {
 			Entry<String, String> header = headers.next();
 			if (filter != null) {
 				if (!filter.apply(header))
-					copyResponseHeader(routingContext, targetUri, header, withRequestPathInfo, urlPattern);
+					copyResponseHeader(routingContext, domain, targetUri, header, withRequestPathInfo, urlPattern);
 			} else
-				copyResponseHeader(routingContext, targetUri, header, withRequestPathInfo, urlPattern);
+				copyResponseHeader(routingContext, domain, targetUri, header, withRequestPathInfo, urlPattern);
 		}
 	}
 
@@ -281,7 +283,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * Copy a proxied response header back to the servlet client. This is easily
 	 * overwritten to filter out certain headers if desired.
 	 */
-	protected void copyResponseHeader(RoutingContext routingContext, String targetUri, Entry<String, String> header, boolean withRequestPathInfo, String urlPattern) {
+	protected void copyResponseHeader(RoutingContext routingContext, String domain, String targetUri, Entry<String, String> header, boolean withRequestPathInfo, String urlPattern) {
 		logger().debug("HTTPProxyClient::Response: " + header.getKey() + ":" + header.getValue());
 		String headerName = header.getKey();
 		if (hopByHopHeaders.containsKey(headerName))
@@ -289,7 +291,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		String headerValue = header.getValue();
 		if (headerName.equalsIgnoreCase("Set-Cookie")
 				|| headerName.equalsIgnoreCase("Set-Cookie2")) {
-			copyProxyCookie(routingContext, headerValue);
+			copyProxyCookie(routingContext, domain, headerValue);
 		} else if (headerName.equalsIgnoreCase("Location")) {
 			// LOCATION Header may have to be rewritten.
 			routingContext.response().headers().add(headerName, rewriteUrlFromResponse(routingContext.request(), targetUri, headerValue, withRequestPathInfo, urlPattern, domain));
@@ -302,7 +304,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * Copy cookie from the proxy to the servlet client. Replaces cookie path to
 	 * local path and renames cookie to avoid collisions.
 	 */
-	protected void copyProxyCookie(RoutingContext routingContext, String headerValue) {
+	protected void copyProxyCookie(RoutingContext routingContext, String domain, String headerValue) {
 		List<HttpCookie> cookies = HttpCookie.parse(headerValue);
 		String path = "";
 		if (!proxyWebClientOptions.doPreserveCookiesContextPath)

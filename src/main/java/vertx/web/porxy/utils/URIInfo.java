@@ -1,12 +1,12 @@
-package vertx.web.proxy;
+package vertx.web.porxy.utils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
 // @See: https://stackoverflow.com/questions/4931323/whats-the-difference-between-getrequesturi-and-getpathinfo-methods-in-httpservl
 public class URIInfo {
-	protected URI uri;
-	protected String domain;
+	protected final URI uri;
+	protected final String domain;
 	
 	public URIInfo(URI uri, String domain) {
 		super();
@@ -25,6 +25,10 @@ public class URIInfo {
 		
 		return result;
 	}
+	
+	public URI getUri() {
+		return uri;
+	}
 
 	public String getRequestURL() {
 		// https://localhost:8888/domain/api/ping?test=2
@@ -33,7 +37,7 @@ public class URIInfo {
 	
 	public String getRequestURI() {
 		// /domain/api/ping?test=2
-		return uri.getPath()+uri.getQuery();
+		return uri.getPath()+(uri.getQuery()!=null ? "?" : "")+uri.getQuery();
 	}
 	
 	public String getContextPath() {
@@ -43,7 +47,7 @@ public class URIInfo {
 	
 	public String getPathInfo() {
 		// /api/ping?test=2
-		return uri.getPath().replaceFirst("/"+domain, "")+uri.getQuery();
+		return uri.getPath().replaceFirst("/"+domain, "")+(uri.getQuery()!=null ? "?" : "")+uri.getQuery();
 	}
 	
 	public String getQueryString() {
