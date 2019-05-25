@@ -7,7 +7,7 @@ public class ProxyWebClientOptions {
 	protected boolean doPreserveCookies = false;
 	protected boolean doForwardIP = true;
 	protected boolean doPreserveCookiesContextPath = false;
-	protected boolean doPreserveCookiesServletPath = false;
+	protected boolean doPreserveCookiesProxyPath = false;
 	protected boolean doSSL = false;
 	
 	public ProxyWebClientOptions() {
@@ -62,12 +62,12 @@ public class ProxyWebClientOptions {
 		this.doPreserveCookiesContextPath = doPreserveCookiesContextPath;
 	}
 
-	public boolean isDoPreserveCookiesServletPath() {
-		return doPreserveCookiesServletPath;
+	public boolean isDoPreserveCookiesProxyPath() {
+		return doPreserveCookiesProxyPath;
 	}
 
-	public void setDoPreserveCookiesServletPath(boolean doPreserveCookiesServletPath) {
-		this.doPreserveCookiesServletPath = doPreserveCookiesServletPath;
+	public void setDoPreserveCookiesProxyPath(boolean doPreserveCookiesProxyPath) {
+		this.doPreserveCookiesProxyPath = doPreserveCookiesProxyPath;
 	}
 
 	public boolean isDoSSL() {

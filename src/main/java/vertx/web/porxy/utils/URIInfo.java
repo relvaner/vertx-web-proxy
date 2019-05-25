@@ -70,7 +70,7 @@ public class URIInfo {
 		return uri.getPort();
 	}
 	
-	public String getServletPath() {
+	public String getProxyPath() {
 		// /api/ping?
 		return uri.getPath().replaceFirst("/"+domain, "")+(uri.getQuery()!=null ? "?" : "");
 	}

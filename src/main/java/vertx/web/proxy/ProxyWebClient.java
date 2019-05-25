@@ -310,8 +310,8 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		if (!proxyWebClientOptions.doPreserveCookiesContextPath)
 			path = serverRequestUriInfo.getContextPath(); // path starts with / or
 														// is empty string
-		if (!proxyWebClientOptions.doPreserveCookiesServletPath)
-			path += serverRequestUriInfo.getServletPath(); // servlet path starts with
+		if (!proxyWebClientOptions.doPreserveCookiesProxyPath)
+			path += serverRequestUriInfo.getProxyPath(); // servlet path starts with
 														// /
 														// or is empty string
 		if (path.isEmpty()) {

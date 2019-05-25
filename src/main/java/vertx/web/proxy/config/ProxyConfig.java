@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -48,7 +47,7 @@ public class ProxyConfig {
 		return result;
 	}
 
-	public void config(Vertx vertx, Router router) {
+	public void config(Router router) {
 		router.route("/").handler(routingContext -> {
 			String domain = getDomain(routingContext);
 			String targetUri = targetUris.get(domain);
