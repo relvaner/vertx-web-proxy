@@ -154,9 +154,9 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		
 		HttpRequest<Buffer> proxyRequest = proxyClient
 				.requestAbs(method, proxyRequestUri)
-				.ssl(proxyWebClientOptions.doSSL);
+				.ssl(proxyWebClientOptions.ssl);
 				
-		if (proxyWebClientOptions.doLog)
+		if (proxyWebClientOptions.log)
 			logger().info(routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " --> " + proxyRequestUri);
 		
 		copyRequestHeaders(routingContext, proxyRequest, targetObj);
@@ -207,7 +207,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			uri.append(encodeUriQuery(queryString, false));
 		}
 
-		if (proxyWebClientOptions.doSendUrlFragment && fragment != null) {
+		if (proxyWebClientOptions.sendUrlFragment && fragment != null) {
 			uri.append('#');
 			uri.append(encodeUriQuery(fragment, false));
 		}
@@ -250,13 +250,13 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			// rewrite the Host header to ensure that we get content from
 			// the correct virtual server
 			 
-			if (!proxyWebClientOptions.doPreserveHost && headerName.equalsIgnoreCase("Host")) {
+			if (!proxyWebClientOptions.preserveHost && headerName.equalsIgnoreCase("Host")) {
 				headerValue = targetObj.getHost();
 				if (targetObj.getPort() != -1)
 					headerValue += ":" + targetObj.getPort();
 			} 
 			else if (header.getKey().equalsIgnoreCase("Cookie"))
-				headerValue = getRealCookie(headerValue, proxyWebClientOptions.doPreserveCookies, cookieFilterRequest);
+				headerValue = getRealCookie(headerValue, proxyWebClientOptions.preserveCookies, cookieFilterRequest);
 			
 			proxyRequest.headers().set(headerName, headerValue);
 			logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
@@ -264,7 +264,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	}
 	
 	protected void setXForwardedForHeader(RoutingContext routingContext, HttpRequest<Buffer> proxyRequest) {
-		if (proxyWebClientOptions.doForwardIP) {
+		if (proxyWebClientOptions.forwardIP) {
 			String forHeaderName = "X-Forwarded-For";
 			String forHeader = routingContext.request().remoteAddress().host();
 			String existingForHeader = routingContext.request().headers().get(forHeaderName);
@@ -319,10 +319,10 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	protected void copyProxyCookie(RoutingContext routingContext, String headerValue) {
 		List<HttpCookie> cookies = HttpCookie.parse(headerValue);
 		String path = "";
-		if (!proxyWebClientOptions.doPreserveCookiesContextPath)
+		if (!proxyWebClientOptions.preserveCookiesContextPath)
 			path = serverRequestUriInfo.getContextPath(); // path starts with / or
 														// is empty string
-		if (!proxyWebClientOptions.doPreserveCookiesProxyPath)
+		if (!proxyWebClientOptions.preserveCookiesProxyPath)
 			path += serverRequestUriInfo.getProxyPath(); // servlet path starts with
 														// /
 														// or is empty string
@@ -335,7 +335,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 
 			// set cookie name prefixed w/ a proxy value so it won't collide w/
 			// other cookies
-			String proxyCookieName = proxyWebClientOptions.doPreserveCookies ? cookie.getName()
+			String proxyCookieName = proxyWebClientOptions.preserveCookies ? cookie.getName()
 					: getCookieNamePrefix() + cookie.getName();
 			Cookie serverCookie = Cookie.cookie(proxyCookieName, cookie.getValue());
 			//serverCookie.setComment(cookie.getComment()); not possible
