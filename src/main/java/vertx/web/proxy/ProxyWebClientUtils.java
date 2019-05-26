@@ -25,7 +25,8 @@ public class ProxyWebClientUtils {
 	public static final Map<String, Boolean> hopByHopHeaders;
 	static {
 		hopByHopHeaders = new HashMap<>();
-		String[] headers = new String[] { "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE",
+		String[] headers = new String[] { 
+				"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE",
 				"Trailers", "Transfer-Encoding", "Upgrade" };
 		for (String header : headers) {
 			hopByHopHeaders.put(header, true);
@@ -50,16 +51,16 @@ public class ProxyWebClientUtils {
 				if (!doPreserveCookie) {
 					if (cookieName.startsWith(getCookieNamePrefix())) {
 						cookieName = cookieName.substring(getCookieNamePrefix().length());
-						if (escapedCookie.length() > 0) {
+						if (escapedCookie.length() > 0)
 							escapedCookie.append("; ");
-						}
+
 						escapedCookie.append(cookieName).append("=").append(cookieSplit[1].trim()); 
 					}
 				}
 				else {
-					if (escapedCookie.length() > 0) {
+					if (escapedCookie.length() > 0)
 						escapedCookie.append("; ");
-					}
+
 					escapedCookie.append(cookieName).append("=").append(cookieSplit[1].trim());
 				}
 			}
@@ -108,10 +109,9 @@ public class ProxyWebClientUtils {
 			if ((pos = curUrl.indexOf("://")) >= 0) {
 				// Skip the authority part
 				// + 3 to skip the separator between protocol and authority
-				if ((pos = curUrl.indexOf("/", pos + 3)) >= 0) {
+				if ((pos = curUrl.indexOf("/", pos + 3)) >= 0)
 					// Trim everything after the authority part.
 					curUrl.setLength(pos);
-				}
 			}
 			// Context path starts with a / if it is not blank
 			curUrl.append(serverRequestUriInfo.getContextPath());
@@ -145,12 +145,10 @@ public class ProxyWebClientUtils {
 			char c = in.charAt(i);
 			boolean escape = true;
 			if (c < 128) {
-				if (asciiQueryChars.get((int) c) && !(encodePercent && c == '%')) {
+				if (asciiQueryChars.get((int) c) && !(encodePercent && c == '%'))
 					escape = false;
-				}
-			} else if (!Character.isISOControl(c) && !Character.isSpaceChar(c)) {// not-ascii
+			} else if (!Character.isISOControl(c) && !Character.isSpaceChar(c)) // not-ascii
 				escape = false;
-			}
 			if (!escape) {
 				if (outBuf != null)
 					outBuf.append(c);

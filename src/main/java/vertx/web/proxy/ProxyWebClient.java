@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.Function;
 
-import org.apache.commons.lang3.mutable.MutableBoolean;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -46,15 +44,14 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	
 	public void execute(RoutingContext routingContext, String urlPattern, String targetUri) {
 		execute(routingContext, urlPattern, (future) -> 
-			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), new MutableBoolean(true), null, urlPattern, null, future));
+			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), null, urlPattern, future));
 	}
 
 	protected void doExecute(RoutingContext routingContext, String targetUri,
-			URI targetObj, String pathInfo, final MutableBoolean resource, final Function<Entry<String, String>, Boolean> filter,
-			String urlPattern, Function<byte[], byte[]> contentFilter, Future<Object> future) {
+			URI targetObj, String pathInfo, final Function<Entry<String, String>, Boolean> filter,
+			String urlPattern,  Future<Object> future) {
 		Handler<AsyncResult<HttpResponse<Buffer>>> handler = asyncResult -> {
 			try {
-				byte[] result = null;
 				if (asyncResult.succeeded()) {
 					// Process the response:
 		
@@ -72,22 +69,10 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					// redirected to another one.
 					// See issue
 					// [#51](https://github.com/mitre/HTTP-Proxy-Servlet/issues/51)
-					final boolean enabled = !resource.getValue();
-					final MutableBoolean contentDisposition = new MutableBoolean(false);
-					final MutableBoolean contentTypeHTML = new MutableBoolean(false);
 					Function<Entry<String, String>, Boolean> filterInternal = new Function<Entry<String, String>, Boolean>() {
 						@Override
 						public Boolean apply(Entry<String, String> header) {
 							boolean result = false;
-		
-							if (enabled) {
-								if (header.getKey().equalsIgnoreCase("Content-Disposition"))
-									contentDisposition.setTrue();
-								else if (header.getKey().equalsIgnoreCase("Content-Type")) {
-									if (header.getValue().contains("text/html"))
-										contentTypeHTML.setTrue();
-								}
-							}
 		
 							if (filter!=null)
 								result = filter.apply(header);
@@ -97,9 +82,6 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					};
 					
 					copyResponseHeaders(asyncResult.result(), routingContext, targetUri, filterInternal, urlPattern);
-					
-					if (enabled)
-						resource.setValue(!(contentDisposition.isFalse() && contentTypeHTML.isTrue()));
 					
 					if (statusCode == SC_NOT_MODIFIED) {
 						// 304 needs special handling. See:
@@ -111,33 +93,17 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 						// changed by David A. Bauer
 						HttpResponse<Buffer> proxyResponse = asyncResult.result();
 						if (proxyResponse.body()!=null) {
-							Buffer buffer = proxyResponse.body().copy();
-							result = buffer.getBytes();
-							if (resource.getValue()  &&  routingContext.response().bytesWritten()==0) {
-								if (contentFilter!=null && contentTypeHTML.isTrue()) {
-									byte[] content = contentFilter.apply(result);
-									routingContext.response().headers().set("Content-Length", String.valueOf(content.length));
-									routingContext.response().write(Buffer.buffer(content));
-								}
-								else {
-									routingContext.response().headers().set("Content-Length", String.valueOf(buffer.length()));
-									routingContext.response().write(buffer);
-								}
-							}
-							else if (routingContext.response().bytesWritten()==0) {
+							if (!routingContext.response().closed() && !routingContext.response().ended() && routingContext.response().bytesWritten()==0) {
+								Buffer buffer = proxyResponse.body().copy();
 								routingContext.response().headers().set("Content-Length", String.valueOf(buffer.length()));
 								routingContext.response().write(buffer);
 							}
 						}
 					}
-					if (!routingContext.response().ended())
+					if (!routingContext.response().closed() && !routingContext.response().ended())
 						routingContext.response().end();
 					future.complete();
-				
-					// do something with "result"!?
 				}
-				else
-					System.out.println(asyncResult.result().statusCode());
 			}
 			catch (Exception e) {
 				e.printStackTrace();
@@ -163,7 +129,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 
 		setXForwardedForHeader(routingContext, proxyRequest);
 		
-		Buffer buffer = routingContext.getBody();
+		Buffer buffer = routingContext.getBody().copy();
 		if (buffer!=null) {
 			proxyRequest.headers().set("Content-Length", String.valueOf(buffer.length()));
 			proxyRequest.sendBuffer(buffer, handler);
@@ -223,9 +189,9 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	// large requests
 	protected long getContentLength(RoutingContext routingContext) {
 		String contentLengthHeader = routingContext.request().headers().get("Content-Length");
-		if (contentLengthHeader != null) {
+		if (contentLengthHeader != null)
 			return Long.parseLong(contentLengthHeader);
-		}
+		
 		return -1L;
 	}
 	
@@ -268,9 +234,9 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			String forHeaderName = "X-Forwarded-For";
 			String forHeader = routingContext.request().remoteAddress().host();
 			String existingForHeader = routingContext.request().headers().get(forHeaderName);
-			if (existingForHeader != null) {
+			if (existingForHeader != null)
 				forHeader = existingForHeader + ", " + forHeader;
-			}
+
 			proxyRequest.headers().set(forHeaderName, forHeader);
 			logger().debug("ProxyWebClient::Request::Header: " + forHeaderName + ":" + forHeader);
 
@@ -304,15 +270,14 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		if (hopByHopHeaders.containsKey(headerName))
 			return;
 		String headerValue = header.getValue();
-		if (headerName.equalsIgnoreCase("Set-Cookie")
-				|| headerName.equalsIgnoreCase("Set-Cookie2")) {
+		if (headerName.equalsIgnoreCase("Set-Cookie") || headerName.equalsIgnoreCase("Set-Cookie2"))
 			copyProxyCookie(routingContext, proxyResponse.cookies().toString().substring(1, proxyResponse.cookies().toString().length()-1)/*headerValue*/); // not so nice, some parts where missing!!!
-		} else if (headerName.equalsIgnoreCase("Location")) {
+		else if (headerName.equalsIgnoreCase("Location"))
 			// LOCATION Header may have to be rewritten.
 			routingContext.response().headers().add(headerName, rewriteUrlFromResponse(routingContext.request(), targetUri, headerValue, urlPattern));
-		} else {
+		else
 			routingContext.response().headers().add(headerName, headerValue);
-		}
+
 		logger().debug("ProxyWebClient::Response::Header: " + header.getKey() + ":" + header.getValue());
 	}
 	
