@@ -88,8 +88,7 @@ public class ProxyWebClientUtils {
 	 * {@code theUrl} to redirect to and translates it to one the original
 	 * client can use.
 	 */
-	public static String rewriteUrlFromResponse(HttpServerRequest serverRequest, final String targetUri,
-			String theUrl, boolean withRequestPathInfo, String urlPattern) {
+	public static String rewriteUrlFromResponse(HttpServerRequest serverRequest, final String targetUri, String theUrl, String urlPattern) {
 		// TODO document example paths
 		if (theUrl.startsWith(targetUri)) {
 			/*-
@@ -118,9 +117,7 @@ public class ProxyWebClientUtils {
 			curUrl.append(serverRequestUriInfo.getContextPath());
 			// Servlet path starts with a / if it is not blank
 			curUrl.append(serverRequestUriInfo.getProxyPath());
-			// Added by David A. Bauer, handles urlPattern, if given
-			if (serverRequestUriInfo.getPathInfo() != null && withRequestPathInfo)
-				curUrl.append(urlPattern.replace("/*", ""));
+			
 			curUrl.append(theUrl, targetUri.length(), theUrl.length());
 			theUrl = curUrl.toString();
 		}

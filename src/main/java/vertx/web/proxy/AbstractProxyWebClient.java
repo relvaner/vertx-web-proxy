@@ -31,7 +31,7 @@ public class AbstractProxyWebClient {
 		return proxyClient;
 	}
 	
-	public void execute(RoutingContext routingContext, String urlPattern, String targetUri, Consumer<Future<Object>> consumer) {
+	public void execute(RoutingContext routingContext, String urlPattern, Consumer<Future<Object>> consumer) {
 		String domain = urlPattern.replace("/*", "");
 		if (domain.isEmpty())
 			domain = "/";
@@ -39,7 +39,12 @@ public class AbstractProxyWebClient {
 		
 		circuitBreakerForWebClient.get(urlPattern)
 			.execute((future) -> {
-				consumer.accept(future);
+				try {
+					consumer.accept(future);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			})
 			.setHandler(asyncResult -> {
 				if (asyncResult.failed()) {

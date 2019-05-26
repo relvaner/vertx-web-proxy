@@ -29,7 +29,7 @@ public class ProxyConfig {
 		try {
 			URI uri = new URI(routingContext.request().absoluteURI());
 			String path = uri.getPath();
-			System.out.println(path);
+			//System.out.println(path);
 			if (path.isEmpty())
 				path = "/";
 			
@@ -64,16 +64,17 @@ public class ProxyConfig {
 		router.route("/*").handler(routingContext -> {
 			String urlPattern = matchesUrlPattern(routingContext);
 			String targetUri = targetUris.get(urlPattern);
-			System.out.println(targetUri);
+			//System.out.println(targetUri);
 			if (targetUri==null)
 				routingContext.fail(404);
-				
-			try {	
-				proxyWebClient.execute(routingContext, urlPattern, targetUri);
-			}
-			catch (Exception e) {
-				routingContext.fail(e);
-			}
+			else
+				try {	
+					proxyWebClient.execute(routingContext, urlPattern, targetUri);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+					routingContext.fail(e);
+				}
 		})
 		.failureHandler(routingContext -> {
 			if (routingContext.statusCode()==404) {
