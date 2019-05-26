@@ -42,12 +42,12 @@ public class URIInfo {
 	
 	public String getContextPath() {
 		// /domain
-		return "/"+domain;
+		return domain;
 	}
 	
 	public String getPathInfo() {
 		// /api/ping?test=2
-		return uri.getPath().replaceFirst("/"+domain, "")+(uri.getQuery()!=null ? "?" : "")+uri.getQuery();
+		return uri.getPath().replaceFirst(domain, "");
 	}
 	
 	public String getQueryString() {
@@ -72,6 +72,6 @@ public class URIInfo {
 	
 	public String getProxyPath() {
 		// /api/ping?
-		return uri.getPath().replaceFirst("/"+domain, "")+(uri.getQuery()!=null ? "?" : "");
+		return uri.getPath().replaceFirst(domain, "")+(uri.getQuery()!=null ? "?" : "");
 	}
 }
