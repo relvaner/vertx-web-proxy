@@ -3,9 +3,11 @@ package vertx.web.proxy.config;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.Router;
@@ -34,24 +36,30 @@ public class ProxyConfig {
 				path = "/";
 			
 			Iterator<Entry<String, String>> iterator = targetUris.entrySet().iterator();
+			// search for absolute match
+			TreeMap<Integer, String> relatives = new TreeMap<>(Collections.reverseOrder());
 			while (iterator.hasNext()) {
 				Entry<String, String> entry = iterator.next();
 				
-				if (entry.getKey().endsWith("/*")) {
+				if (path.equals(entry.getKey())) {
+					result = entry.getKey();
+					break;
+				}
+				else if (entry.getKey().endsWith("/*")) {
 					String key = entry.getKey().replace("/*", "");
 					if (key.isEmpty())
 						key = "/";
 					if (path.startsWith(key)) {
 						result =  entry.getKey();
-						if (!result.equals("/"))
-							break;
+						relatives.put(result.length(), result);
 					}
 				}
-				else if (path.equals(entry.getKey())) {
-					result = entry.getKey();
-					break;
-				}
+					
 			}
+			
+			// search for relative match
+			if (result.isEmpty() && relatives.firstEntry()!=null)
+				result = relatives.firstEntry().getValue();
 			
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
