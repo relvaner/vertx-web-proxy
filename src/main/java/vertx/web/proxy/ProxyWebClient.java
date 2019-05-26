@@ -21,8 +21,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import vertx.web.porxy.utils.CircuitBreakerForWebClient;
-import vertx.web.porxy.utils.URIInfo;
+import vertx.web.proxy.utils.CircuitBreakerForWebClient;
+import vertx.web.proxy.utils.URIInfo;
 
 public class ProxyWebClient extends AbstractProxyWebClient {
 	public static final int SC_NOT_MODIFIED = 304;
@@ -53,6 +53,8 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		Handler<AsyncResult<HttpResponse<Buffer>>> handler = asyncResult -> {
 			try {
 				if (asyncResult.succeeded()) {
+					//routingContext.response().setChunked(true);
+					
 					// Process the response:
 		
 					// Pass the response code. This method with the "reason phrase" is

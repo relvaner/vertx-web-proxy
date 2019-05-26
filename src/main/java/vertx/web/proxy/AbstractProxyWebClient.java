@@ -5,8 +5,8 @@ import java.util.function.Consumer;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
-import vertx.web.porxy.utils.CircuitBreakerForWebClient;
-import vertx.web.porxy.utils.URIInfo;
+import vertx.web.proxy.utils.CircuitBreakerForWebClient;
+import vertx.web.proxy.utils.URIInfo;
 
 public class AbstractProxyWebClient {
 	protected WebClient proxyClient;

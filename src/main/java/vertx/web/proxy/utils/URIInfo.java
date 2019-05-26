@@ -1,4 +1,4 @@
-package vertx.web.porxy.utils;
+package vertx.web.proxy.utils;
 
 import java.net.URI;
 import java.net.URISyntaxException;

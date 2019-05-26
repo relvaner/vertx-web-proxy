@@ -13,7 +13,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
-import vertx.web.porxy.utils.URIInfo;
+import vertx.web.proxy.utils.URIInfo;
 
 public class ProxyWebClientUtils {
 	/**
