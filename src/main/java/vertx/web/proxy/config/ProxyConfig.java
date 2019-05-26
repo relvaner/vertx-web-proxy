@@ -15,7 +15,7 @@ import vertx.web.proxy.ProxyWebClient;
 public class ProxyConfig {
 	protected ProxyWebClient proxyWebClient;
 	protected Map<String, String> targetUris; // urlPattern -> targetUri; e.g., "/domain" or "/" -> "https://host:port"
-	protected String unavailable_html = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable!</p>";
+	protected String unavailable_html = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable! Your Proxy-Vert.x Team</p>";
 		
 	public ProxyConfig(ProxyWebClient proxyWebClient, Map<String, String> targetUris) {
 		super();

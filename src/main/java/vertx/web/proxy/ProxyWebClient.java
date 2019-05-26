@@ -254,10 +254,10 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				headerValue = targetObj.getHost();
 				if (targetObj.getPort() != -1)
 					headerValue += ":" + targetObj.getPort();
-
-			} else if (header.getKey().equalsIgnoreCase("Cookie")) {
+			} 
+			else if (header.getKey().equalsIgnoreCase("Cookie"))
 				headerValue = getRealCookie(headerValue, proxyWebClientOptions.doPreserveCookies, cookieFilterRequest);
-			}
+			
 			proxyRequest.headers().set(headerName, headerValue);
 			logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
 		}
@@ -289,9 +289,9 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			Entry<String, String> header = headers.next();
 			if (filter != null) {
 				if (!filter.apply(header))
-					copyResponseHeader(routingContext, targetUri, header, urlPattern);
+					copyResponseHeader(proxyResponse, routingContext, targetUri, header, urlPattern);
 			} else
-				copyResponseHeader(routingContext, targetUri, header, urlPattern);
+				copyResponseHeader(proxyResponse, routingContext, targetUri, header, urlPattern);
 		}
 	}
 
@@ -299,14 +299,14 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * Copy a proxied response header back to the servlet client. This is easily
 	 * overwritten to filter out certain headers if desired.
 	 */
-	protected void copyResponseHeader(RoutingContext routingContext, String targetUri, Entry<String, String> header, String urlPattern) {
+	protected void copyResponseHeader(HttpResponse<Buffer> proxyResponse, RoutingContext routingContext, String targetUri, Entry<String, String> header, String urlPattern) {
 		String headerName = header.getKey();
 		if (hopByHopHeaders.containsKey(headerName))
 			return;
 		String headerValue = header.getValue();
 		if (headerName.equalsIgnoreCase("Set-Cookie")
 				|| headerName.equalsIgnoreCase("Set-Cookie2")) {
-			copyProxyCookie(routingContext, headerValue);
+			copyProxyCookie(routingContext, proxyResponse.cookies().toString().substring(1, proxyResponse.cookies().toString().length()-1)/*headerValue*/); // not so nice!!!
 		} else if (headerName.equalsIgnoreCase("Location")) {
 			// LOCATION Header may have to be rewritten.
 			routingContext.response().headers().add(headerName, rewriteUrlFromResponse(routingContext.request(), targetUri, headerValue, urlPattern));
@@ -316,10 +316,6 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		logger().debug("ProxyWebClient::Response::Header: " + header.getKey() + ":" + header.getValue());
 	}
 	
-	/**
-	 * Copy cookie from the proxy to the servlet client. Replaces cookie path to
-	 * local path and renames cookie to avoid collisions.
-	 */
 	protected void copyProxyCookie(RoutingContext routingContext, String headerValue) {
 		List<HttpCookie> cookies = HttpCookie.parse(headerValue);
 		String path = "";
@@ -330,9 +326,8 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			path += serverRequestUriInfo.getProxyPath(); // servlet path starts with
 														// /
 														// or is empty string
-		if (path.isEmpty()) {
+		if (path.isEmpty())
 			path = "/";
-		}
 
 		for (HttpCookie cookie : cookies) {
 			if (cookieFilterResponse != null && cookieFilterResponse.apply(cookie))
