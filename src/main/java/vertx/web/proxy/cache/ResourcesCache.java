@@ -3,7 +3,6 @@ package vertx.web.proxy.cache;
 import static vertx.web.proxy.ProxyLogger.logger;
 
 import java.io.IOException;
-import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +11,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 public class ResourcesCache {
-	protected final String alias;
+	protected final String alias; //"vertx-web-proxy";
 	
 	protected final String redisHost;
 	protected final int redisPort;
