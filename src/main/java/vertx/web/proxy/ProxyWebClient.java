@@ -306,7 +306,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		String headerValue = header.getValue();
 		if (headerName.equalsIgnoreCase("Set-Cookie")
 				|| headerName.equalsIgnoreCase("Set-Cookie2")) {
-			copyProxyCookie(routingContext, proxyResponse.cookies().toString().substring(1, proxyResponse.cookies().toString().length()-1)/*headerValue*/); // not so nice!!!
+			copyProxyCookie(routingContext, proxyResponse.cookies().toString().substring(1, proxyResponse.cookies().toString().length()-1)/*headerValue*/); // not so nice, some parts where missing!!!
 		} else if (headerName.equalsIgnoreCase("Location")) {
 			// LOCATION Header may have to be rewritten.
 			routingContext.response().headers().add(headerName, rewriteUrlFromResponse(routingContext.request(), targetUri, headerValue, urlPattern));
