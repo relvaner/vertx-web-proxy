@@ -47,7 +47,10 @@ public class URIInfo {
 	
 	public String getPathInfo() {
 		// /api/ping?test=2
-		return uri.getPath().replaceFirst(domain, "");
+		String result = uri.getPath().replaceFirst(domain, "");
+		if (!result.startsWith("/"))
+			result = "/" + result;
+		return result;
 	}
 	
 	public String getQueryString() {
@@ -72,6 +75,6 @@ public class URIInfo {
 	
 	public String getProxyPath() {
 		// /api/ping?
-		return uri.getPath().replaceFirst(domain, "")+(uri.getQuery()!=null ? "?" : "");
+		return getPathInfo()+(uri.getQuery()!=null ? "?" : "");
 	}
 }
