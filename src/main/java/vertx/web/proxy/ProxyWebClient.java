@@ -163,9 +163,13 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 
 		setXForwardedForHeader(routingContext, proxyRequest);
 		
-		proxyRequest.send(handler);		
-		
-		logger().debug("---");
+		Buffer buffer = routingContext.getBody();
+		if (buffer!=null) {
+			proxyRequest.headers().set("Content-Length", String.valueOf(buffer.length()));
+			proxyRequest.sendBuffer(buffer, handler);
+		}
+		else
+			proxyRequest.send(handler);		
 	}
 	
 	/**
@@ -236,14 +240,12 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			String headerName = header.getKey();
 			String headerValue = header.getValue();
 			
-			// Instead the content-length is effectively set via InputStreamEntity
+			// Instead the content-length is effectively set via InputStreamEntity, set in ProxyWebClient::doExecute
 			if (headerName.equalsIgnoreCase("Content-Length"))
-				return;
+				continue;
 			if (hopByHopHeaders.containsKey(headerName))
-				return;
+				continue;
 			
-			
-			logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue); // debug
 			// In case the proxy host is running multiple virtual servers,
 			// rewrite the Host header to ensure that we get content from
 			// the correct virtual server
@@ -257,6 +259,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				headerValue = getRealCookie(headerValue, proxyWebClientOptions.doPreserveCookies, cookieFilterRequest);
 			}
 			proxyRequest.headers().set(headerName, headerValue);
+			logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
 		}
 	}
 	
@@ -269,10 +272,12 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				forHeader = existingForHeader + ", " + forHeader;
 			}
 			proxyRequest.headers().set(forHeaderName, forHeader);
+			logger().debug("ProxyWebClient::Request::Header: " + forHeaderName + ":" + forHeader);
 
 			String protoHeaderName = "X-Forwarded-Proto";
 			String protoHeader = serverRequestUriInfo.getScheme();
 			proxyRequest.headers().set(protoHeaderName, protoHeader);
+			logger().debug("ProxyWebClient::Request::Header: " + protoHeaderName + ":" + protoHeader);
 		}
 	}
 	
@@ -295,7 +300,6 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * overwritten to filter out certain headers if desired.
 	 */
 	protected void copyResponseHeader(RoutingContext routingContext, String targetUri, Entry<String, String> header, String urlPattern) {
-		logger().debug("ProxyWebClient::Response::Header: " + header.getKey() + ":" + header.getValue());
 		String headerName = header.getKey();
 		if (hopByHopHeaders.containsKey(headerName))
 			return;
@@ -309,6 +313,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		} else {
 			routingContext.response().headers().add(headerName, headerValue);
 		}
+		logger().debug("ProxyWebClient::Response::Header: " + header.getKey() + ":" + header.getValue());
 	}
 	
 	/**

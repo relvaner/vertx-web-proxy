@@ -22,13 +22,13 @@ public class ProxyWebClientUtils {
 	 * HttpClient HeaderGroup class instead of Set&lt;String&gt; because this
 	 * approach does case insensitive lookup faster.
 	 */
-	public static final Map<String, String> hopByHopHeaders;
+	public static final Map<String, Boolean> hopByHopHeaders;
 	static {
 		hopByHopHeaders = new HashMap<>();
 		String[] headers = new String[] { "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE",
 				"Trailers", "Transfer-Encoding", "Upgrade" };
 		for (String header : headers) {
-			hopByHopHeaders.put(header, null);
+			hopByHopHeaders.put(header, true);
 		}
 	}
 	/**
