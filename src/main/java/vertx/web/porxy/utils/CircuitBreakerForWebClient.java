@@ -20,11 +20,11 @@ public class CircuitBreakerForWebClient {
 		circuitBreakersMap = new HashMap<>();
 	}
 	
-	public CircuitBreaker get(String host) {
-		CircuitBreaker result = circuitBreakersMap.get(host);
+	public CircuitBreaker get(String urlPattern) {
+		CircuitBreaker result = circuitBreakersMap.get(urlPattern);
 		
 		if (result==null) {
-			result = CircuitBreaker.create(host, vertx, circuitBreakerOptions);
+			result = CircuitBreaker.create(urlPattern, vertx, circuitBreakerOptions);
 			/*
 			.openHandler(v -> {
 				System.out.println("Circuit opened");
@@ -32,7 +32,7 @@ public class CircuitBreakerForWebClient {
 				System.out.println("Circuit closed");
 			});
 			*/
-			circuitBreakersMap.put(host, result);
+			circuitBreakersMap.put(urlPattern, result);
 		}
 		
 		return result;

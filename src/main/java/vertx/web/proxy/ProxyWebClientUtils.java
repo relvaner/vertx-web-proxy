@@ -37,7 +37,7 @@ public class ProxyWebClientUtils {
 	 * correctly according to RFC 6265 Sec 5.4. This also blocks any local
 	 * cookies from being sent to the proxy.
 	 */
-	public static String getRealCookie(String domain, String cookieValue, boolean doPreserveCookie, Function<String, Boolean> filter) {
+	public static String getRealCookie(String cookieValue, boolean doPreserveCookie, Function<String, Boolean> filter) {
 		StringBuilder escapedCookie = new StringBuilder();
 		String cookies[] = cookieValue.split("[;,]");
 		for (String cookie : cookies) {
@@ -48,8 +48,8 @@ public class ProxyWebClientUtils {
 					continue;
 				
 				if (!doPreserveCookie) {
-					if (cookieName.startsWith(getCookieNamePrefix(domain, cookieName))) {
-						cookieName = cookieName.substring(getCookieNamePrefix(domain, cookieName).length());
+					if (cookieName.startsWith(getCookieNamePrefix())) {
+						cookieName = cookieName.substring(getCookieNamePrefix().length());
 						if (escapedCookie.length() > 0) {
 							escapedCookie.append("; ");
 						}
@@ -68,8 +68,8 @@ public class ProxyWebClientUtils {
 	}
 	
 	/** The string prefixing rewritten cookies. */
-	public static String getCookieNamePrefix(String servletName, String name) {
-		return "!Proxy!" + servletName;
+	public static String getCookieNamePrefix() {
+		return "!Proxy!";
 	}
 
 	/**
@@ -89,7 +89,7 @@ public class ProxyWebClientUtils {
 	 * client can use.
 	 */
 	public static String rewriteUrlFromResponse(HttpServerRequest serverRequest, final String targetUri,
-			String theUrl, boolean withRequestPathInfo, String urlPattern, String domain) {
+			String theUrl, boolean withRequestPathInfo, String urlPattern) {
 		// TODO document example paths
 		if (theUrl.startsWith(targetUri)) {
 			/*-
@@ -101,7 +101,7 @@ public class ProxyWebClientUtils {
 			 * using this servlet's absolute path and the path from the returned URL
 			 * after the base target URL.
 			 */
-			URIInfo serverRequestUriInfo = URIInfo.create(serverRequest.absoluteURI(), domain);
+			URIInfo serverRequestUriInfo = URIInfo.create(serverRequest.absoluteURI(), urlPattern.replace("/*", ""));
 			StringBuffer curUrl = new StringBuffer();
 			curUrl.append(serverRequestUriInfo.getRequestURL());
 			int pos;

@@ -14,7 +14,7 @@ import vertx.web.proxy.ProxyWebClient;
 
 public class ProxyConfig {
 	protected ProxyWebClient proxyWebClient;
-	protected Map<String, String> targetUris; // domain -> targetUri; e.g., "/domain" or "/" -> "https://host:port"
+	protected Map<String, String> targetUris; // urlPattern -> targetUri; e.g., "/domain" or "/" -> "https://host:port"
 	protected String unavailable_html = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable!</p>";
 		
 	public ProxyConfig(ProxyWebClient proxyWebClient, Map<String, String> targetUris) {
@@ -23,23 +23,36 @@ public class ProxyConfig {
 		this.targetUris = targetUris;
 	}
 	
-	protected String getDomain(RoutingContext routingContext) {
+	protected String matchesUrlPattern(RoutingContext routingContext) {
 		String result = "";
 		
 		try {
 			URI uri = new URI(routingContext.request().absoluteURI());
 			String path = uri.getPath();
+			System.out.println(path);
 			if (path.isEmpty())
 				path = "/";
 			
 			Iterator<Entry<String, String>> iterator = targetUris.entrySet().iterator();
 			while (iterator.hasNext()) {
 				Entry<String, String> entry = iterator.next();
-				if (path.startsWith(entry.getValue())) {
+				
+				if (entry.getKey().endsWith("/*")) {
+					String key = entry.getKey().replace("/*", "");
+					if (key.isEmpty())
+						key = "/";
+					if (path.startsWith(key)) {
+						result =  entry.getKey();
+						if (!result.equals("/"))
+							break;
+					}
+				}
+				else if (path.equals(entry.getKey())) {
 					result = entry.getKey();
 					break;
 				}
 			}
+			
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
@@ -48,14 +61,15 @@ public class ProxyConfig {
 	}
 
 	public void config(Router router) {
-		router.route("/").handler(routingContext -> {
-			String domain = getDomain(routingContext);
-			String targetUri = targetUris.get(domain);
+		router.route("/*").handler(routingContext -> {
+			String urlPattern = matchesUrlPattern(routingContext);
+			String targetUri = targetUris.get(urlPattern);
+			System.out.println(targetUri);
 			if (targetUri==null)
 				routingContext.fail(404);
 				
 			try {	
-				proxyWebClient.execute(routingContext, domain, targetUri);
+				proxyWebClient.execute(routingContext, urlPattern, targetUri);
 			}
 			catch (Exception e) {
 				routingContext.fail(e);

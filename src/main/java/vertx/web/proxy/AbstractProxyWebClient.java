@@ -31,10 +31,13 @@ public class AbstractProxyWebClient {
 		return proxyClient;
 	}
 	
-	public void execute(RoutingContext routingContext, String domain, String targetUri, Consumer<Future<Object>> consumer) {
+	public void execute(RoutingContext routingContext, String urlPattern, String targetUri, Consumer<Future<Object>> consumer) {
+		String domain = urlPattern.replace("/*", "");
+		if (domain.isEmpty())
+			domain = "/";
 		serverRequestUriInfo = URIInfo.create(routingContext.request().absoluteURI(), domain);
 		
-		circuitBreakerForWebClient.get(domain)
+		circuitBreakerForWebClient.get(urlPattern)
 			.execute((future) -> {
 				consumer.accept(future);
 			})
