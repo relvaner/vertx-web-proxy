@@ -31,7 +31,6 @@ public class ProxyConfig {
 		try {
 			URI uri = new URI(routingContext.request().absoluteURI());
 			String path = uri.getPath();
-			//System.out.println(path);
 			if (path.isEmpty())
 				path = "/";
 			
@@ -72,7 +71,6 @@ public class ProxyConfig {
 		router.route("/*").handler(routingContext -> {
 			String urlPattern = matchesUrlPattern(routingContext);
 			String targetUri = targetUris.get(urlPattern);
-			//System.out.println(targetUri);
 			if (targetUri==null)
 				routingContext.fail(404);
 			else

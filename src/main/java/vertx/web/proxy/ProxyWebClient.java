@@ -90,6 +90,9 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 						// http://www.ics.uci.edu/pub/ietf/http/rfc1945.html#Code304
 						// Don't send body entity/content!
 						routingContext.response().headers().set("Content-Length", "0");
+						
+						if (proxyWebClientOptions.log)
+							logger().info(routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " <-- 304 Not Modified ");
 					} else {
 						// Send the content to the client
 						// changed by David A. Bauer
