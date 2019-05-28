@@ -27,9 +27,7 @@ public class ServerVerticle extends AbstractVerticle {
 		ProxyWebClientOptions proxyOptions = new ProxyWebClientOptions();
 		proxyOptions
 			.setLog(true)
-			.setSsl(true)
-			.setForwardIP(false)
-			.setCircuitBreakerUseAbsoluteURI(true);
+			.setSsl(true);
 		
 		CircuitBreakerForWebClient circuitBreaker = new CircuitBreakerForWebClient(vertx, 
 				new CircuitBreakerOptions()
