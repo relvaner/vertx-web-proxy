@@ -1,4 +1,4 @@
-## vertx-web-proxy - Example##
+## vertx-web-proxy - Example ##
 
 ```java
 public class ServerVerticle extends AbstractVerticle {
@@ -24,20 +24,20 @@ public class ServerVerticle extends AbstractVerticle {
 		options.setVerifyHost(false);
 		WebClient webClient = WebClient.create(vertx, options);
 		
-		ProxyWebClientOptions proxyWebClientOptions = new ProxyWebClientOptions();
-		proxyWebClientOptions
+		ProxyWebClientOptions proxyOptions = new ProxyWebClientOptions();
+		proxyOptions
 			.setLog(true)
 			.setSsl(true)
 			.setForwardIP(false)
 			.setCircuitBreakerUseAbsoluteURI(true);
 		
-		CircuitBreakerForWebClient circuitBreakerForWebClient = new CircuitBreakerForWebClient(vertx, 
+		CircuitBreakerForWebClient circuitBreaker = new CircuitBreakerForWebClient(vertx, 
 				new CircuitBreakerOptions()
 					.setMaxFailures(3)
 					.setTimeout(5_000)
 					.setResetTimeout(2_000));
 		
-		ProxyWebClient proxyWebClient = new ProxyWebClient(webClient, proxyWebClientOptions, circuitBreakerForWebClient);
+		ProxyWebClient proxyWebClient = new ProxyWebClient(webClient, proxyOptions, circuitBreaker);
 		
 		Map<String, String> targetUris = new HashMap<>();
 		targetUris.put("/*", "https://host:443");
@@ -55,4 +55,4 @@ public class ServerVerticle extends AbstractVerticle {
 This library is released under an open source Apache 2.0 license.
 
 ## Announcement ##
-This library is currently under an prototype state.
+This library is currently under a prototype state.
