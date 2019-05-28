@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import vertx.web.proxy.ProxyWebClient;
@@ -89,7 +90,7 @@ public class ProxyConfig {
 			}
 			else if (routingContext.statusCode()==503) {
 				routingContext.response().setStatusCode(503);
-				routingContext.response().headers().set("Content-Length", String.valueOf(unavailable_html.getBytes().length));
+				routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(unavailable_html.getBytes().length));
 				try {
 					routingContext.response().end(Buffer.buffer(unavailable_html.getBytes("UTF-8")));
 				} catch (UnsupportedEncodingException e) {

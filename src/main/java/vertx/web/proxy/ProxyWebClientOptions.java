@@ -10,6 +10,8 @@ public class ProxyWebClientOptions {
 	protected boolean preserveCookiesProxyPath = true;
 	protected boolean ssl = false;
 	
+	protected boolean circuitBreakerUseAbsoluteURI = false;
+	
 	public ProxyWebClientOptions() {
 		super();
 	}
@@ -61,12 +63,19 @@ public class ProxyWebClientOptions {
 		
 		return this;
 	}
+	
+	public ProxyWebClientOptions setCircuitBreakerUseAbsoluteURI(boolean circuitBreakerUseAbsoluteURI) {
+		this.circuitBreakerUseAbsoluteURI = circuitBreakerUseAbsoluteURI;
+		
+		return this;
+	}
 
 	@Override
 	public String toString() {
 		return "ProxyWebClientOptions [log=" + log + ", sendUrlFragment=" + sendUrlFragment + ", preserveHost="
 				+ preserveHost + ", preserveCookies=" + preserveCookies + ", forwardIP=" + forwardIP
 				+ ", preserveCookiesContextPath=" + preserveCookiesContextPath + ", preserveCookiesProxyPath="
-				+ preserveCookiesProxyPath + ", ssl=" + ssl + "]";
+				+ preserveCookiesProxyPath + ", ssl=" + ssl + ", circuitBreakerUseAbsoluteURI="
+				+ circuitBreakerUseAbsoluteURI + "]";
 	}
 }

@@ -14,6 +14,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Cookie;
@@ -89,7 +90,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 						// 304 needs special handling. See:
 						// http://www.ics.uci.edu/pub/ietf/http/rfc1945.html#Code304
 						// Don't send body entity/content!
-						routingContext.response().headers().set("Content-Length", "0");
+						routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, "0");
 						
 						if (proxyWebClientOptions.log)
 							logger().info(routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " <-- 304 Not Modified ");
@@ -100,7 +101,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 						if (proxyResponse.body()!=null) {
 							if (!routingContext.response().closed() && !routingContext.response().ended() && routingContext.response().bytesWritten()==0) {
 								Buffer buffer = proxyResponse.body().copy();
-								routingContext.response().headers().set("Content-Length", String.valueOf(buffer.length()));
+								routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
 								routingContext.response().write(buffer);
 							}
 						}
@@ -136,7 +137,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		
 		Buffer buffer = routingContext.getBody().copy();
 		if (buffer!=null) {
-			proxyRequest.headers().set("Content-Length", String.valueOf(buffer.length()));
+			proxyRequest.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
 			proxyRequest.sendBuffer(buffer, handler);
 		}
 		else
@@ -193,7 +194,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	// Get the header value as a long in order to more correctly proxy very
 	// large requests
 	protected long getContentLength(RoutingContext routingContext) {
-		String contentLengthHeader = routingContext.request().headers().get("Content-Length");
+		String contentLengthHeader = routingContext.request().headers().get(HttpHeaders.CONTENT_LENGTH);
 		if (contentLengthHeader != null)
 			return Long.parseLong(contentLengthHeader);
 		

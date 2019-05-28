@@ -1,5 +1,7 @@
 package vertx.web.proxy;
 
+import static vertx.web.proxy.ProxyLogger.logger;
+
 import java.util.function.Consumer;
 
 import io.vertx.core.Future;
@@ -37,6 +39,8 @@ public class AbstractProxyWebClient {
 			domain = "/";
 		serverRequestUriInfo = URIInfo.create(routingContext.request().absoluteURI(), domain);
 		
+		if (proxyWebClientOptions.circuitBreakerUseAbsoluteURI)
+			urlPattern = routingContext.request().absoluteURI();
 		circuitBreakerForWebClient.get(urlPattern)
 			.execute((future) -> {
 				try {
@@ -48,7 +52,7 @@ public class AbstractProxyWebClient {
 			})
 			.setHandler(asyncResult -> {
 				if (asyncResult.failed()) {
-					System.out.printf("WebClient failed: %s%n", asyncResult.cause());
+					logger().error("WebClient failed: %s%n", asyncResult.cause());
 					routingContext.fail(503);
 				}
 			});
