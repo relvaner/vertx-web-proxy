@@ -52,7 +52,7 @@ public class AbstractProxyWebClient {
 			})
 			.setHandler(asyncResult -> {
 				if (asyncResult.failed()) {
-					logger().error("WebClient failed: %s%n", asyncResult.cause());
+					logger().error(String.format("WebClient failed: %s%n", asyncResult.cause()));
 					routingContext.fail(503);
 				}
 			});
