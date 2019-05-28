@@ -21,7 +21,7 @@ package vertx.web.proxy.cache;
  */
 public interface Cache<K, V> {
 	public V get(K key);
-	public V put(K key, V value);
+	public V put(K key, V value, int size);
 	public void remove(K key);
 	public void clear();
 	

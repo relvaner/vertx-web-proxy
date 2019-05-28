@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.SortedMap;
@@ -28,7 +29,7 @@ import java.util.SortedMap;
  *  See: https://github.com/relvaner/actor4j-core/tree/master/src/main/java/actor4j/core/utils
  *  Changes for thread safety, David A. Bauer
  */
-public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
+public abstract class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 	protected static class Pair<V> {
 		public final V value;
 		public final long timestamp;
@@ -42,15 +43,17 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 	protected final Map<K, Pair<V>> map;
 	protected final SortedMap<Long, K> lru;
 	
-	protected final int size;
+	protected final int maxSize;
+	protected final AtomicInteger size;
 	
 	protected final Lock lock;
 	
-	public CacheLRUWithGC(int size) {
-		map = new ConcurrentHashMap<>(size);
+	public CacheLRUWithGC(int maxSize) {
+		map = new ConcurrentHashMap<>();
 		lru = new ConcurrentSkipListMap<>();
 		
-		this.size = size;
+		this.maxSize = maxSize;
+		size = new AtomicInteger(0);
 		
 		lock = new ReentrantLock();
 	}
@@ -62,6 +65,12 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 	public SortedMap<Long, K> getLru() {
 		return lru;
 	}
+	
+	public AtomicInteger getSize() {
+		return size;
+	}
+	
+	protected abstract int determineSize(K key);
 
 	@Override
 	public V get(K key) {
@@ -83,7 +92,7 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 	}
 	
 	@Override
-	public V put(K key, V value) {
+	public V put(K key, V value, int size) {
 		V result = null;
 		try {
 			lock.lock();
@@ -92,6 +101,7 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 			if (pair==null) {
 				resize();
 				lru.put(timestamp, key);
+				this.size.addAndGet(size);
 			}
 			else {
 				lru.remove(pair.timestamp);
@@ -111,6 +121,7 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 			Pair<V> pair = map.get(key);
 			lru.remove(pair.timestamp);
 			map.remove(key);
+			size.addAndGet(-determineSize(key));
 		} finally {
 			lock.unlock();
 		}
@@ -121,6 +132,7 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 			lock.lock();
 			map.clear();
 			lru.clear();
+			size.set(0);
 		} finally {
 			lock.unlock();
 		}
@@ -128,9 +140,11 @@ public class CacheLRUWithGC<K, V> implements Cache<K, V>  {
 	
 	// used only by put
 	protected void resize() {
-		if (map.size()>size) {
+		if (size.get()>maxSize) {
 			long timestamp = lru.firstKey();
-			map.remove(lru.get(timestamp));
+			K key = lru.get(timestamp);
+			size.addAndGet(-determineSize(key));
+			map.remove(key);
 			lru.remove(timestamp);
 		}
 	}
