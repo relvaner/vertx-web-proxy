@@ -20,8 +20,6 @@ public class ServerVerticle extends AbstractVerticle {
 	public void proxyConfig(Router router) {
 		WebClientOptions options = new WebClientOptions();
 		options.setSsl(true);
-		options.setTrustAll(true);
-		options.setVerifyHost(false);
 		WebClient webClient = WebClient.create(vertx, options);
 		
 		ProxyWebClientOptions proxyOptions = new ProxyWebClientOptions();
