@@ -8,7 +8,10 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -31,18 +34,39 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	protected Function<String, Boolean> cookieFilterRequest;
 	protected Function<HttpCookie, Boolean> cookieFilterResponse;
 	
+	protected MutableBoolean htmlFilterEnabled;
+	protected BiFunction<ProxyWebClient, byte[], byte[]> htmlFilter;
+	
 	public ProxyWebClient(WebClient proxyClient, ProxyWebClientOptions proxyWebClientOptions, CircuitBreakerForWebClient circuitBreakerForWebClient) {
 		super(proxyClient, proxyWebClientOptions, circuitBreakerForWebClient);
+		
+		htmlFilterEnabled = new MutableBoolean(false);
 	}
 	
-	public void setCookieFilterRequest(Function<String, Boolean> cookieFilterRequest) {
+	public ProxyWebClient setCookieFilterRequest(Function<String, Boolean> cookieFilterRequest) {
 		this.cookieFilterRequest = cookieFilterRequest;
+		
+		return this;
 	}
 
-	public void setCookieFilterResponse(Function<HttpCookie, Boolean> cookieFilterResponse) {
+	public ProxyWebClient setCookieFilterResponse(Function<HttpCookie, Boolean> cookieFilterResponse) {
 		this.cookieFilterResponse = cookieFilterResponse;
+		
+		return this;
 	}
 	
+	public ProxyWebClient setHtmlFilterEnabled(boolean contentFilterEnabled) {
+		this.htmlFilterEnabled.setValue(contentFilterEnabled);
+		
+		return this;
+	}
+
+	public ProxyWebClient setHtmlFilter(BiFunction<ProxyWebClient, byte[], byte[]> contentFilter) {
+		this.htmlFilter = contentFilter;
+		
+		return this;
+	}
+
 	public void execute(RoutingContext routingContext, String urlPattern, String targetUri) {
 		execute(routingContext, urlPattern, (future) -> 
 			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), null, urlPattern, future));
@@ -72,10 +96,18 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					// redirected to another one.
 					// See issue
 					// [#51](https://github.com/mitre/HTTP-Proxy-Servlet/issues/51)
+					final MutableBoolean contentTypeHTML = new MutableBoolean(false);
 					Function<Entry<String, String>, Boolean> filterInternal = new Function<Entry<String, String>, Boolean>() {
 						@Override
 						public Boolean apply(Entry<String, String> header) {
 							boolean result = false;
+							
+							if (htmlFilterEnabled.isTrue()) {
+								if (header.getKey().equalsIgnoreCase("Content-Type")) {
+									if (header.getValue().contains("text/html"))
+										contentTypeHTML.setTrue();
+								}
+							}
 		
 							if (filter!=null)
 								result = filter.apply(header);
@@ -101,6 +133,12 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 						if (proxyResponse.body()!=null) {
 							if (!routingContext.response().closed() && !routingContext.response().ended() && routingContext.response().bytesWritten()==0) {
 								Buffer buffer = proxyResponse.body().copy();
+								
+								if (htmlFilterEnabled.isTrue() && contentTypeHTML.isTrue()) {
+									byte[] content = htmlFilter.apply(this, buffer.getBytes());
+									buffer = Buffer.buffer(content);
+								}
+								
 								routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
 								routingContext.response().write(buffer);
 							}

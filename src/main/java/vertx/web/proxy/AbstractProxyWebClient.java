@@ -33,6 +33,10 @@ public class AbstractProxyWebClient {
 		return proxyClient;
 	}
 	
+	public URIInfo getServerRequestUriInfo() {
+		return serverRequestUriInfo;
+	}
+
 	public void execute(RoutingContext routingContext, String urlPattern, Consumer<Future<Object>> consumer) {
 		String domain = urlPattern.replace("/*", "");
 		if (domain.isEmpty())
