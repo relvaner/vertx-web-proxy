@@ -49,14 +49,12 @@ public class ProxyConfig {
 					String key = entry.getKey().replace("/*", "");
 					if (key.isEmpty())
 						key = "/";
-					if (path.startsWith(key)) {
-						result =  entry.getKey();
-						relatives.put(result.length(), result);
-					}
+					if (path.startsWith(key))
+						relatives.put(key.length(),  entry.getKey());
 				}
 					
 			}
-			
+
 			// search for relative match
 			if (result.isEmpty() && relatives.firstEntry()!=null)
 				result = relatives.firstEntry().getValue();
