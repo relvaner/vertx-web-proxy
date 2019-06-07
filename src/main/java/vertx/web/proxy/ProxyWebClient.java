@@ -124,6 +124,8 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		String proxyRequestUri = rewriteUrlFromRequest(routingContext, targetUri, pathInfo, urlPattern);
 		logger().debug("ProxyWebClient::Request: "+proxyRequestUri);
 		
+		if (targetObj!=null) 
+			proxyWebClientOptions.ssl = targetObj.getScheme().equalsIgnoreCase("https");
 		HttpRequest<Buffer> proxyRequest = proxyClient
 				.requestAbs(method, proxyRequestUri)
 				.ssl(proxyWebClientOptions.ssl);
