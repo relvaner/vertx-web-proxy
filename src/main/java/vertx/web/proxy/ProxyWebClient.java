@@ -7,23 +7,28 @@ import java.net.HttpCookie;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Cookie;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.multipart.MultipartForm;
 import vertx.web.proxy.utils.CircuitBreakerForWebClient;
 import vertx.web.proxy.utils.URIInfo;
 
@@ -38,10 +43,13 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	protected MutableBoolean contentFilterEnabled;
 	protected Function<Buffer, Buffer> contentFilter;
 	
+	protected String uploadsDirectory;
+	
 	public ProxyWebClient(WebClient proxyClient, ProxyWebClientOptions proxyWebClientOptions, CircuitBreakerForWebClient circuitBreakerForWebClient) {
 		super(proxyClient, proxyWebClientOptions, circuitBreakerForWebClient);
 		
 		contentFilterEnabled = new MutableBoolean(false);
+		uploadsDirectory = "file-uploads";
 	}
 	
 	public ProxyWebClient setCookieFilterRequest(Function<String, Boolean> cookieFilterRequest) {
@@ -74,6 +82,16 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 
 	public ProxyWebClient setContentFilter(Function<Buffer, Buffer> contentFilter) {
 		this.contentFilter = contentFilter;
+		
+		return this;
+	}
+	
+	public String getUploadsDirectory() {
+		return uploadsDirectory;
+	}
+
+	public ProxyWebClient setUploadsDirectory(String uploadsDirectory) {
+		this.uploadsDirectory = uploadsDirectory;
 		
 		return this;
 	}
@@ -158,18 +176,58 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				
 		if (proxyWebClientOptions.log)
 			logger().info(routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " --> " + proxyRequestUri);
-		
-		copyRequestHeaders(routingContext, proxyRequest, targetObj);
 
+		boolean isMultipartForm = isMultipartForm(routingContext);
+		
+		if (isMultipartForm)
+			copyRequestHeadersForMultipartForm(routingContext, proxyRequest, targetObj);
+		else
+			copyRequestHeaders(routingContext, proxyRequest, targetObj);
+		
 		setXForwardedForHeader(routingContext, proxyRequest);
 		
-		Buffer buffer = routingContext.getBody().copy();
-		if (buffer!=null) {
-			proxyRequest.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
-			proxyRequest.sendBuffer(buffer, handler);
+		if (isMultipartForm)
+			proxyRequest.sendMultipartForm(createMultipartForm(routingContext), handler);
+		else {
+			Buffer buffer = routingContext.getBody().copy();
+			if (buffer!=null) {
+				proxyRequest.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
+				proxyRequest.sendBuffer(buffer, handler);
+			}
+			else
+				proxyRequest.send(handler);	
 		}
-		else
-			proxyRequest.send(handler);		
+	}
+	
+	protected boolean isMultipartForm(RoutingContext routingContext) {
+		boolean result = false;
+		
+		String value = null;
+		if ((value=routingContext.request().getHeader(HttpHeaders.CONTENT_TYPE))!=null)
+			result = value.contains(HttpHeaderValues.MULTIPART_FORM_DATA.toString());
+		
+		return result;
+	}
+	
+	protected MultipartForm createMultipartForm(RoutingContext routingContext) {
+		MultipartForm result = MultipartForm.create();
+		
+		MultiMap formAttributes = routingContext.request().formAttributes();
+		Iterator<Entry<String, String>> formAttributesIterator = formAttributes.iterator();
+		while (formAttributesIterator.hasNext()) {
+			Entry<String, String> entry = formAttributesIterator.next();
+			result.attribute(entry.getKey(), entry.getValue());
+		}
+
+		Set<FileUpload> uploads = routingContext.fileUploads();
+		Iterator<FileUpload> uploadsIterator =  uploads.iterator();
+	  	while (uploadsIterator.hasNext()) {
+	  		FileUpload uploadFile = uploadsIterator.next();
+	  		String fileName = uploadFile.uploadedFileName().replace(uploadsDirectory+"\\", "").replace(uploadsDirectory+"/", "");
+	  		result.binaryFileUpload(uploadFile.name(), uploadFile.fileName(), uploadsDirectory+"/"+fileName, uploadFile.contentType());
+	  	}
+	  	
+	  	return result;
 	}
 	
 	/**
@@ -260,6 +318,34 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			
 			proxyRequest.headers().set(headerName, headerValue);
 			logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+		}
+	}
+	
+	protected void copyRequestHeadersForMultipartForm(RoutingContext routingContext, HttpRequest<Buffer> proxyRequest, URI targetObj) {
+		Iterator<Entry<String, String>> headers = routingContext.request().headers().iterator();
+		while (headers.hasNext()) {// sometimes more than one value
+			Entry<String, String> header = headers.next();
+			String headerName = header.getKey();
+			String headerValue = header.getValue();
+			 
+			if (!proxyWebClientOptions.preserveHost && headerName.equalsIgnoreCase("Host")) {
+				headerValue = targetObj.getHost();
+				if (targetObj.getPort() != -1)
+					headerValue += ":" + targetObj.getPort();
+				
+				proxyRequest.headers().set(headerName, headerValue);
+				logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+			} 
+			else if (header.getKey().equalsIgnoreCase("Cookie")) {
+				headerValue = getRealCookie(headerValue, proxyWebClientOptions.preserveCookies, cookieFilterRequest);
+				
+				proxyRequest.headers().set(headerName, headerValue);
+				logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+			}
+			else if (header.getKey().equalsIgnoreCase("Authorization")) {
+				proxyRequest.headers().set(headerName, headerValue);
+				logger().debug("ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+			}
 		}
 	}
 	

@@ -1,6 +1,5 @@
 package vertx.web.proxy;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.BitSet;
 import java.util.Formatter;
@@ -8,11 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
 import vertx.web.proxy.utils.URIInfo;
 
 public class ProxyWebClientUtils {
@@ -71,17 +66,6 @@ public class ProxyWebClientUtils {
 	/** The string prefixing rewritten cookies. */
 	public static String getCookieNamePrefix() {
 		return "!Proxy!";
-	}
-
-	/**
-	 * Copy response body data (the entity) from the proxy to the servlet
-	 * client.
-	 */
-	public static void copyResponseEntity(HttpResponse<Buffer> proxyResponse, HttpServerResponse serverResponse,
-			HttpRequest<Buffer> proxyRequest, HttpServerRequest serverRequest) throws IOException {
-		Buffer data = proxyResponse.body();
-		if (data != null) 
-			serverResponse.write(data);
 	}
 
 	/**
