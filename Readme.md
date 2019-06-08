@@ -7,7 +7,8 @@ public class ServerVerticle extends AbstractVerticle {
 		Router router = Router.router(vertx);
 		router.route().handler(CookieHandler.create());
 		router.route().handler(BodyHandler.create()
-				.setBodyLimit(-1));
+				.setBodyLimit(-1)
+				.setDeleteUploadedFilesOnEnd(true));
 		
 		proxyConfig(router);
 		
@@ -24,8 +25,7 @@ public class ServerVerticle extends AbstractVerticle {
 		
 		ProxyWebClientOptions proxyOptions = new ProxyWebClientOptions();
 		proxyOptions
-			.setLog(true)
-			.setSsl(true);
+			.setLog(true);
 		
 		CircuitBreakerForWebClient circuitBreaker = new CircuitBreakerForWebClient(vertx, 
 				new CircuitBreakerOptions()
@@ -36,9 +36,9 @@ public class ServerVerticle extends AbstractVerticle {
 		ProxyWebClient proxyWebClient = new ProxyWebClient(webClient, proxyOptions, circuitBreaker);
 		
 		Map<String, String> targetUris = new HashMap<>();
-		targetUris.put("/*", "https://host:443");
-		targetUris.put("/apple", "https://host:443");
-		targetUris.put("/banana/*", "https://host:443");
+		targetUris.put("/*", "https://host:port");
+		targetUris.put("/apple", "http://host:port");
+		targetUris.put("/banana/*", "https://host:port");
 			
 		ProxyLogger.logger().setLevel(Level.INFO);
 		ProxyConfig proxyConfig = new ProxyConfig(proxyWebClient, targetUris);
