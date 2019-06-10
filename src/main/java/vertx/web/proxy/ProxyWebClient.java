@@ -5,6 +5,7 @@ import static vertx.web.proxy.ProxyLogger.*;
 
 import java.net.HttpCookie;
 import java.net.URI;
+import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +15,7 @@ import java.util.function.Function;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -33,8 +35,6 @@ import vertx.web.proxy.utils.CircuitBreakerForWebClient;
 import vertx.web.proxy.utils.URIInfo;
 
 public class ProxyWebClient extends AbstractProxyWebClient {
-	public static final int SC_NOT_MODIFIED = 304;
-	
 	protected Function<String, Boolean> cookieFilterRequest;
 	protected Function<HttpCookie, Boolean> cookieFilterResponse;
 	
@@ -98,11 +98,11 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 
 	public void execute(RoutingContext routingContext, String urlPattern, String targetUri) {
 		execute(routingContext, urlPattern, (future) -> 
-			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), urlPattern, future));
+			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), future));
 	}
 
 	protected void doExecute(RoutingContext routingContext, String targetUri,
-			URI targetObj, String pathInfo, String urlPattern,  Future<Object> future) {
+			URI targetObj, String pathInfo,  Future<Object> future) {
 		Handler<AsyncResult<HttpResponse<Buffer>>> handler = asyncResult -> {
 			try {
 				if (asyncResult.succeeded()) {
@@ -124,9 +124,9 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					// redirected to another one.
 					// See issue
 					// [#51](https://github.com/mitre/HTTP-Proxy-Servlet/issues/51)
-					copyResponseHeaders(asyncResult.result(), routingContext, targetUri, headerFilterResponse, urlPattern);
+					copyResponseHeaders(asyncResult.result(), routingContext, targetUri, headerFilterResponse);
 					
-					if (statusCode == SC_NOT_MODIFIED) {
+					if (statusCode == HttpResponseStatus.NOT_MODIFIED.code()) {
 						// 304 needs special handling. See:
 						// http://www.ics.uci.edu/pub/ietf/http/rfc1945.html#Code304
 						// Don't send body entity/content!
@@ -165,7 +165,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		// note: we won't transfer the protocol version because I'm not sure it
 		// would truly be compatible
 		HttpMethod method = routingContext.request().method();
-		String proxyRequestUri = rewriteUrlFromRequest(routingContext, targetUri, pathInfo, urlPattern);
+		String proxyRequestUri = rewriteUrlFromRequest(routingContext, targetUri, pathInfo);
 		logger().debug("ProxyWebClient::Request: "+proxyRequestUri);
 		
 		if (targetObj!=null) 
@@ -238,7 +238,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * Reads the request URI from {@code servletRequest} and rewrites it,
 	 * considering targetUri. It's used to make the new request.
 	 */
-	protected String rewriteUrlFromRequest(RoutingContext routingContext, String targetUri, String pathInfo, String urlPattern) {
+	protected String rewriteUrlFromRequest(RoutingContext routingContext, String targetUri, String pathInfo) {
 		StringBuilder uri = new StringBuilder(500);
 		uri.append(targetUri);
 		
@@ -369,15 +369,15 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	
 	/** Copy proxied response headers back to the servlet client. */
 	protected void copyResponseHeaders(HttpResponse<Buffer> proxyResponse, RoutingContext routingContext,
-			String targetUri, Function<Entry<String, String>, Boolean> filter, String urlPattern) {
+			String targetUri, Function<Entry<String, String>, Boolean> filter) {
 		Iterator<Entry<String, String>> headers = proxyResponse.headers().iterator();
 		while (headers.hasNext()) {
 			Entry<String, String> header = headers.next();
 			if (filter != null) {
 				if (!filter.apply(header))
-					copyResponseHeader(proxyResponse, routingContext, targetUri, header, urlPattern);
+					copyResponseHeader(proxyResponse, routingContext, targetUri, header);
 			} else
-				copyResponseHeader(proxyResponse, routingContext, targetUri, header, urlPattern);
+				copyResponseHeader(proxyResponse, routingContext, targetUri, header);
 		}
 	}
 
@@ -385,7 +385,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	 * Copy a proxied response header back to the servlet client. This is easily
 	 * overwritten to filter out certain headers if desired.
 	 */
-	protected void copyResponseHeader(HttpResponse<Buffer> proxyResponse, RoutingContext routingContext, String targetUri, Entry<String, String> header, String urlPattern) {
+	protected void copyResponseHeader(HttpResponse<Buffer> proxyResponse, RoutingContext routingContext, String targetUri, Entry<String, String> header) {
 		String headerName = header.getKey();
 		if (hopByHopHeaders.containsKey(headerName))
 			return;
@@ -394,7 +394,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			copyProxyCookie(routingContext, proxyResponse.cookies().toString().substring(1, proxyResponse.cookies().toString().length()-1)/*headerValue*/); // not so nice, some parts where missing!!!
 		else if (headerName.equalsIgnoreCase("Location"))
 			// LOCATION Header may have to be rewritten.
-			routingContext.response().headers().add(headerName, rewriteUrlFromResponse(routingContext.request(), targetUri, headerValue, urlPattern));
+			routingContext.response().headers().add(headerName, rewriteUrlFromResponse(routingContext.request(), targetUri, headerValue));
 		else
 			routingContext.response().headers().add(headerName, headerValue);
 
@@ -431,5 +431,127 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			//serverCookie.setVersion(cookie.getVersion()); not possible
 			routingContext.addCookie(serverCookie);
 		}
+	}
+	
+	/**
+	 * Take any client cookies that were originally from the proxy and prepare
+	 * them to send to the proxy. This relies on cookie headers being set
+	 * correctly according to RFC 6265 Sec 5.4. This also blocks any local
+	 * cookies from being sent to the proxy.
+	 */
+	public String getRealCookie(String cookieValue, boolean doPreserveCookie, Function<String, Boolean> filter) {
+		StringBuilder escapedCookie = new StringBuilder();
+		String cookies[] = cookieValue.split("[;,]");
+		for (String cookie : cookies) {
+			String cookieSplit[] = cookie.split("=");
+			if (cookieSplit.length == 2) {
+				String cookieName = cookieSplit[0].trim();
+				if (filter!=null && filter.apply(cookieName))
+					continue;
+				
+				if (!doPreserveCookie) {
+					if (cookieName.startsWith(getCookieNamePrefix())) {
+						cookieName = cookieName.substring(getCookieNamePrefix().length());
+						if (escapedCookie.length() > 0)
+							escapedCookie.append("; ");
+
+						escapedCookie.append(cookieName).append("=").append(cookieSplit[1].trim()); 
+					}
+				}
+				else {
+					if (escapedCookie.length() > 0)
+						escapedCookie.append("; ");
+
+					escapedCookie.append(cookieName).append("=").append(cookieSplit[1].trim());
+				}
+			}
+		}
+		return escapedCookie.toString();
+	}
+	
+	/** The string prefixing rewritten cookies. */
+	public String getCookieNamePrefix() {
+		return "!Proxy!";
+	}
+	
+	/**
+	 * For a redirect response from the target server, this translates
+	 * {@code theUrl} to redirect to and translates it to one the original
+	 * client can use.
+	 */
+	public String rewriteUrlFromResponse(HttpServerRequest serverRequest, final String targetUri, String theUrl) {
+		// TODO document example paths
+		if (theUrl.startsWith(targetUri)) {
+			/*-
+			 * The URL points back to the back-end server.
+			 * Instead of returning it verbatim we replace the target path with our
+			 * source path in a way that should instruct the original client to
+			 * request the URL pointed through this Proxy.
+			 * We do this by taking the current request and rewriting the path part
+			 * using this servlet's absolute path and the path from the returned URL
+			 * after the base target URL.
+			 */
+			StringBuffer curUrl = new StringBuffer();
+			curUrl.append(serverRequestUriInfo.getRequestURL());
+			int pos;
+			// Skip the protocol part
+			if ((pos = curUrl.indexOf("://")) >= 0) {
+				// Skip the authority part
+				// + 3 to skip the separator between protocol and authority
+				if ((pos = curUrl.indexOf("/", pos + 3)) >= 0)
+					// Trim everything after the authority part.
+					curUrl.setLength(pos);
+			}
+			// Context path starts with a / if it is not blank
+			curUrl.append(serverRequestUriInfo.getContextPath());
+			// Servlet path starts with a / if it is not blank
+			curUrl.append(serverRequestUriInfo.getProxyPath());
+			
+			curUrl.append(theUrl, targetUri.length(), theUrl.length());
+			theUrl = curUrl.toString();
+		}
+		return theUrl;
+	}
+
+	/**
+	 * Encodes characters in the query or fragment part of the URI.
+	 *
+	 * <p>
+	 * Unfortunately, an incoming URI sometimes has characters disallowed by the
+	 * spec. HttpClient insists that the outgoing proxied request has a valid
+	 * URI because it uses Java's {@link URI}. To be more forgiving, we must
+	 * escape the problematic characters. See the URI class for the spec.
+	 *
+	 * @param in
+	 *            example: name=value&amp;foo=bar#fragment
+	 */
+	public CharSequence encodeUriQuery(CharSequence in, boolean encodePercent) {
+		// Note that I can't simply use URI.java to encode because it will
+		// escape pre-existing escaped things.
+		StringBuilder outBuf = null;
+		Formatter formatter = null;
+		for (int i = 0; i < in.length(); i++) {
+			char c = in.charAt(i);
+			boolean escape = true;
+			if (c < 128) {
+				if (asciiQueryChars.get((int) c) && !(encodePercent && c == '%'))
+					escape = false;
+			} else if (!Character.isISOControl(c) && !Character.isSpaceChar(c)) // not-ascii
+				escape = false;
+			if (!escape) {
+				if (outBuf != null)
+					outBuf.append(c);
+			} else {
+				// escape
+				if (outBuf == null) {
+					outBuf = new StringBuilder(in.length() + 5 * 3);
+					outBuf.append(in, 0, i);
+					formatter = new Formatter(outBuf);
+				}
+				// leading %, 0 padded, width 2, capital hex
+				formatter.format("%%%02X", (int) c);// TODO
+			}
+		}
+		return outBuf != null ? outBuf : in;
 	}
 }
