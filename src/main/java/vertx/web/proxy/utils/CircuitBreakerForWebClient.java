@@ -25,13 +25,6 @@ public class CircuitBreakerForWebClient {
 		
 		if (result==null) {
 			result = CircuitBreaker.create(urlPattern, vertx, circuitBreakerOptions);
-			/*
-			.openHandler(v -> {
-				System.out.println("Circuit opened");
-			}).closeHandler(v -> {
-				System.out.println("Circuit closed");
-			});
-			*/
 			circuitBreakersMap.put(urlPattern, result);
 		}
 		
