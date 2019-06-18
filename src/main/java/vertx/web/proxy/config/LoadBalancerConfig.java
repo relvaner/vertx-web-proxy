@@ -6,7 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import io.vertx.ext.web.Router;
 import vertx.web.proxy.ProxyWebClient;
 
-public class LoadBalancerConfig extends Config {
+public class LoadBalancerConfig extends ProxyConfig {
 	protected List<String> targetUris; // "/*" -> "https://host:port, https://host:port..."
 		
 	public LoadBalancerConfig(ProxyWebClient proxyWebClient, List<String> targetUris) {
