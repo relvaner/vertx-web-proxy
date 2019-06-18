@@ -41,8 +41,8 @@ public class ServerVerticle extends AbstractVerticle {
 		targetUris.put("/banana/*", "https://host:port");
 			
 		ProxyLogger.logger().setLevel(Level.INFO);
-		ProxyConfig proxyConfig = new ProxyConfig(proxyWebClient, targetUris);
-		proxyConfig.config(router);
+		MultiProxyConfig multiProxyConfig = new MultiProxyConfig(proxyWebClient, targetUris);
+		multiProxyConfig.config(router);
 	}
 }
 ```
