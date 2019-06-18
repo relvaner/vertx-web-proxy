@@ -12,7 +12,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import vertx.web.proxy.ProxyWebClient;
 
-public class ProxyConfig extends AbstractConfig {
+public class ProxyConfig extends Config {
 	protected Map<String, String> targetUris; // urlPattern -> targetUri; e.g., "/domain" or "/" -> "https://host:port"
 		
 	public ProxyConfig(ProxyWebClient proxyWebClient, Map<String, String> targetUris) {

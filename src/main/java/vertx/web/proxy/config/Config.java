@@ -11,11 +11,11 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import vertx.web.proxy.ProxyWebClient;
 
-public class AbstractConfig {
+public class Config {
 	protected ProxyWebClient proxyWebClient;
 	protected String unavailable_html = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable! Your Proxy-Vert.x Team</p>";
 	
-	public AbstractConfig(ProxyWebClient proxyWebClient) {
+	public Config(ProxyWebClient proxyWebClient) {
 		super();
 		this.proxyWebClient = proxyWebClient;
 	}
