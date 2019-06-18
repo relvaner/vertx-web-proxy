@@ -1,28 +1,22 @@
 package vertx.web.proxy.config;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.apache.commons.lang3.tuple.Pair;
 import java.util.TreeMap;
-
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import vertx.web.proxy.ProxyWebClient;
 
-public class ProxyConfig {
-	protected ProxyWebClient proxyWebClient;
+public class ProxyConfig extends AbstractConfig {
 	protected Map<String, String> targetUris; // urlPattern -> targetUri; e.g., "/domain" or "/" -> "https://host:port"
-	protected String unavailable_html = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable! Your Proxy-Vert.x Team</p>";
 		
 	public ProxyConfig(ProxyWebClient proxyWebClient, Map<String, String> targetUris) {
-		super();
-		this.proxyWebClient = proxyWebClient;
+		super(proxyWebClient);
 		this.targetUris = targetUris;
 	}
 	
@@ -65,37 +59,15 @@ public class ProxyConfig {
 		
 		return result;
 	}
-
+	
 	public void config(Router router) {
-		router.route("/*").handler(routingContext -> {
+		config(router, "/*");
+	}
+
+	protected void config(Router router, String path) {
+		config(router, path, (routingContext) -> {
 			String urlPattern = matchesUrlPattern(routingContext);
-			String targetUri = targetUris.get(urlPattern);
-			if (targetUri==null)
-				routingContext.fail(404);
-			else
-				try {	
-					proxyWebClient.execute(routingContext, urlPattern, targetUri);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-					routingContext.fail(e);
-				}
-		})
-		.failureHandler(routingContext -> {
-			if (routingContext.statusCode()==404) {
-				routingContext.response().setStatusCode(404);
-				routingContext.response().end();
-			}
-			else if (routingContext.statusCode()==503) {
-				routingContext.response().setStatusCode(503);
-				routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(unavailable_html.getBytes().length));
-				try {
-					routingContext.response().end(Buffer.buffer(unavailable_html.getBytes("UTF-8")));
-				} catch (UnsupportedEncodingException e) {
-					routingContext.response().end();
-					e.printStackTrace();
-				}
-			}
+			return Pair.of(urlPattern, targetUris.get(urlPattern));
 		});
 	}
 }
