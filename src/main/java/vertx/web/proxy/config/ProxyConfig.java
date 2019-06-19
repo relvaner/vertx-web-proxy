@@ -55,4 +55,8 @@ public class ProxyConfig {
 			}
 		});
 	}
+	
+	public void config(Router router, String path, String target) {
+		config(router, path, (routingContext) -> Pair.of(path, target));
+	}
 }

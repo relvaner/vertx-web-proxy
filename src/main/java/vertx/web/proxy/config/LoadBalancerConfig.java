@@ -2,7 +2,6 @@ package vertx.web.proxy.config;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import org.apache.commons.lang3.tuple.Pair;
 import io.vertx.ext.web.Router;
 import vertx.web.proxy.ProxyWebClient;
 
@@ -19,6 +18,6 @@ public class LoadBalancerConfig extends ProxyConfig {
 	}
 	
 	public void config(Router router, String path) {
-		config(router, path, (routingContext) -> Pair.of(path, targetUris.get(ThreadLocalRandom.current().nextInt(targetUris.size()))));
+		config(router, path, targetUris.get(ThreadLocalRandom.current().nextInt(targetUris.size())));
 	}
 }
