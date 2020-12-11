@@ -4,7 +4,7 @@ import static vertx.web.proxy.ProxyLogger.logger;
 
 import java.util.function.Consumer;
 
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
 import vertx.web.proxy.utils.CircuitBreakerForWebClient;
@@ -37,7 +37,7 @@ public class AbstractProxyWebClient {
 		return serverRequestUriInfo;
 	}
 
-	public void execute(RoutingContext routingContext, String urlPattern, Consumer<Future<Object>> consumer) {
+	public void execute(RoutingContext routingContext, String urlPattern, Consumer<Promise<Object>> consumer) {
 		String domain = urlPattern.replace("/*", "");
 		if (domain.isEmpty())
 			domain = "/";
@@ -46,9 +46,9 @@ public class AbstractProxyWebClient {
 		if (proxyWebClientOptions.circuitBreakerUseAbsoluteURI)
 			urlPattern = routingContext.request().absoluteURI();
 		circuitBreakerForWebClient.get(urlPattern)
-			.execute((future) -> {
+			.execute((promise) -> {
 				try {
-					consumer.accept(future);
+					consumer.accept(promise);
 				}
 				catch (Exception e) {
 					e.printStackTrace();

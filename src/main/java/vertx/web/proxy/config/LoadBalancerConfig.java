@@ -35,8 +35,13 @@ public class LoadBalancerConfig extends ProxyConfig {
 			if (mode==LoadBalancerMode.RANDOM)
 				target = targetUris.get(ThreadLocalRandom.current().nextInt(targetUris.size()));
 			else {
-				globalIndex.compareAndSet(targetUris.size(), 0);
-				target = targetUris.get(globalIndex.getAndIncrement());
+				int index = globalIndex.getAndUpdate((x) -> {
+					if (x>=targetUris.size()-1) 
+					    return 0;
+					else
+						return x+1;
+				} );
+				target = targetUris.get(index);
 			}
 			return Pair.of(path, target); 
 		});

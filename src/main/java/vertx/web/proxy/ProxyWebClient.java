@@ -20,6 +20,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -97,12 +98,12 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 	}
 
 	public void execute(RoutingContext routingContext, String urlPattern, String targetUri) {
-		execute(routingContext, urlPattern, (future) -> 
-			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), future));
+		execute(routingContext, urlPattern, (promise) -> 
+			doExecute(routingContext, targetUri, URIInfo.create(targetUri, "").getUri(), serverRequestUriInfo.getPathInfo(), promise));
 	}
 
 	protected void doExecute(RoutingContext routingContext, String targetUri,
-			URI targetObj, String pathInfo,  Future<Object> future) {
+			URI targetObj, String pathInfo,  Promise<Object> promise) {
 		Handler<AsyncResult<HttpResponse<Buffer>>> handler = asyncResult -> {
 			try {
 				if (asyncResult.succeeded()) {
@@ -152,7 +153,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					}
 					if (!routingContext.response().closed() && !routingContext.response().ended())
 						routingContext.response().end();
-					future.complete();
+					promise.complete();
 				}
 			}
 			catch (Exception e) {
