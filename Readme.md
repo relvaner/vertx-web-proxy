@@ -48,7 +48,4 @@ public class ServerVerticle extends AbstractVerticle {
 ```
 
 ## License ##
-This library is released under an open source Apache 2.0 license.
-
-## Announcement ##
-This library is currently under a prototype state.
+This library is released under an open source Apache 2.0 license. Ported with adaptations from [Smiley's HTTP Proxy Servlet](https://github.com/mitre/HTTP-Proxy-Servlet).
