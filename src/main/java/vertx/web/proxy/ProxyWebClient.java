@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.Formatter;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
 import java.util.function.Function;
 
@@ -16,8 +15,8 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -25,7 +24,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
@@ -190,7 +188,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		if (isMultipartForm)
 			proxyRequest.sendMultipartForm(createMultipartForm(routingContext), handler);
 		else {
-			Buffer buffer = routingContext.getBody().copy();
+			Buffer buffer = routingContext.body().buffer()!=null ? routingContext.body().buffer().copy() : null;
 			if (buffer!=null) {
 				proxyRequest.headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()));
 				proxyRequest.sendBuffer(buffer, handler);
@@ -220,7 +218,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			result.attribute(entry.getKey(), entry.getValue());
 		}
 
-		Set<FileUpload> uploads = routingContext.fileUploads();
+		List<FileUpload> uploads = routingContext.fileUploads();
 		Iterator<FileUpload> uploadsIterator =  uploads.iterator();
 	  	while (uploadsIterator.hasNext()) {
 	  		FileUpload uploadFile = uploadsIterator.next();
@@ -430,7 +428,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 			// don't set cookie domain
 			serverCookie.setSecure(cookie.getSecure());
 			//serverCookie.setVersion(cookie.getVersion()); not possible
-			routingContext.addCookie(serverCookie);
+			routingContext.response().addCookie(serverCookie);
 		}
 	}
 	
