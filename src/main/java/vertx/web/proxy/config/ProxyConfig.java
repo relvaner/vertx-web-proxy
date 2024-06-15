@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2019-2024, David A. Bauer. All rights reserved.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package vertx.web.proxy.config;
 
 import java.io.UnsupportedEncodingException;
@@ -12,8 +27,8 @@ import io.vertx.ext.web.RoutingContext;
 import vertx.web.proxy.ProxyWebClient;
 
 public class ProxyConfig {
-	protected ProxyWebClient proxyWebClient;
-	protected String unavailable_html = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable! Your Proxy-Vert.x Team</p>";
+	protected final ProxyWebClient proxyWebClient;
+	protected final String UNAVAIALBLE_HTML = "<p style=\"color:red;\">Whoops, seems like the service is temporary unavailable! Your Proxy-Vert.x Team</p>";
 	
 	public ProxyConfig(ProxyWebClient proxyWebClient) {
 		super();
@@ -45,9 +60,9 @@ public class ProxyConfig {
 			}
 			else if (routingContext.statusCode()==503) {
 				routingContext.response().setStatusCode(503);
-				routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(unavailable_html.getBytes().length));
+				routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, String.valueOf(UNAVAIALBLE_HTML.getBytes().length));
 				try {
-					routingContext.response().end(Buffer.buffer(unavailable_html.getBytes("UTF-8")));
+					routingContext.response().end(Buffer.buffer(UNAVAIALBLE_HTML.getBytes("UTF-8")));
 				} catch (UnsupportedEncodingException e) {
 					routingContext.response().end();
 					e.printStackTrace();
