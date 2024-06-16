@@ -16,7 +16,7 @@
 package vertx.web.proxy.utils;
 
 import static vertx.web.proxy.logging.ProxyLogger.DEBUG;
-import static vertx.web.proxy.logging.ProxyLogger.systemLogger;
+import static vertx.web.proxy.logging.ProxyLogger.logger;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,13 +55,13 @@ public class ConcurrentCircuitBreakerForWebClient {
 				result = CircuitBreaker.create(urlPattern, vertx, circuitBreakerOptions);
 				result
 					.openHandler(v -> {
-						systemLogger().log(DEBUG, String.format("Circuit opened: %s", urlPattern));
+						logger().log(DEBUG, String.format("Circuit opened: %s", urlPattern));
 					})
 					.halfOpenHandler(v -> {
-						systemLogger().log(DEBUG, String.format("Circuit half open: %s", urlPattern));
+						logger().log(DEBUG, String.format("Circuit half open: %s", urlPattern));
 					})
 					.closeHandler(v -> {
-						systemLogger().log(DEBUG, String.format("Circuit closed: %s", urlPattern));
+						logger().log(DEBUG, String.format("Circuit closed: %s", urlPattern));
 					});
 				circuitBreakersMap.put(urlPattern, result);
 			}

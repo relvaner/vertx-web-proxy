@@ -25,28 +25,18 @@ public class ProxyLogger {
 	public static final Level DEBUG = Level.CONFIG;
 	public static final Level TRACE = Level.FINE;
 	
-	protected static Logger system_logger;
-	protected static Logger user_logger;
+	protected static Logger logger;
 	
 	static {
-		system_logger = LoggerFactory.create("SYSTEM", INFO);
-		user_logger = LoggerFactory.create("USER", DEBUG);
-	}
-	
-	public static Logger systemLogger() {
-		return system_logger;
+		logger = LoggerFactory.create("PROXY", DEBUG);
 	}
 	
 	public static Logger logger() {
-		return user_logger;
-	}
-	
-	public static void systemLogger(Logger logger) {
-		system_logger = logger;
+		return logger;
 	}
 	
 	public static void logger(Logger logger) {
-		user_logger = logger;
+		ProxyLogger.logger = logger;
 	}
 	
 	public static void showSimpleClassName() {

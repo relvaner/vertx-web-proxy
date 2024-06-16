@@ -82,7 +82,7 @@ public class LoggerFactory {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");  
 		String dateAsString = dateFormat.format(date);
 		
-		return String.format("[%-5s] %s [%s] [%s] %s::%s [PROXY] %s%n", 
+		return String.format("[%-5s] %s [%s] [%s] %s::%s [LOG] %s%n", 
 				LEVEL_AS_STRING.get(record.getLevel()), 
 				dateAsString, record.getLoggerName(), 
 				Thread.currentThread().getName(), 

@@ -75,7 +75,7 @@ public class AbstractProxyWebClient {
 			})
 			.onComplete(asyncResult -> {
 				if (asyncResult.failed()) {
-					systemLogger().log(ERROR, String.format("WebClient failed ('%s'): %s", urlPattern_, asyncResult.cause()));
+					logger().log(ERROR, String.format("WebClient failed ('%s'): %s", urlPattern_, asyncResult.cause()));
 					routingContext.fail(503);
 				}
 			});

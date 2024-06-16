@@ -148,7 +148,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 						routingContext.response().headers().set(HttpHeaders.CONTENT_LENGTH, "0");
 						
 						if (proxyWebClientOptions.log)
-							systemLogger().log(INFO, routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " <-- 304 Not Modified ");
+							logger().log(INFO, routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " <-- 304 Not Modified ");
 					} else {
 						// Send the content to the client
 						// changed by David A. Bauer
@@ -181,7 +181,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		// would truly be compatible
 		HttpMethod method = routingContext.request().method();
 		String proxyRequestUri = rewriteUrlFromRequest(routingContext, targetUri, pathInfo);
-		systemLogger().log(DEBUG, "ProxyWebClient::Request: "+proxyRequestUri);
+		logger().log(DEBUG, "Request: "+proxyRequestUri);
 		
 		if (targetObj!=null) 
 			proxyWebClientOptions.ssl = targetObj.getScheme().equalsIgnoreCase("https");
@@ -190,7 +190,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				.ssl(proxyWebClientOptions.ssl);
 				
 		if (proxyWebClientOptions.log)
-			systemLogger().log(INFO, routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " --> " + proxyRequestUri);
+			logger().log(INFO, routingContext.request().method() + " uri: " + routingContext.request().absoluteURI() + " --> " + proxyRequestUri);
 
 		boolean isMultipartForm = isMultipartForm(routingContext);
 		
@@ -332,7 +332,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				headerValue = getRealCookie(headerValue, proxyWebClientOptions.preserveCookies, cookieFilterRequest);
 			
 			proxyRequest.headers().set(headerName, headerValue);
-			systemLogger().log(DEBUG, "ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+			logger().log(DEBUG, "Header: " + headerName + ":" + headerValue);
 		}
 	}
 	
@@ -349,17 +349,17 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 					headerValue += ":" + targetObj.getPort();
 				
 				proxyRequest.headers().set(headerName, headerValue);
-				systemLogger().log(DEBUG, "ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+				logger().log(DEBUG, "Header: " + headerName + ":" + headerValue);
 			} 
 			else if (header.getKey().equalsIgnoreCase("Cookie")) {
 				headerValue = getRealCookie(headerValue, proxyWebClientOptions.preserveCookies, cookieFilterRequest);
 				
 				proxyRequest.headers().set(headerName, headerValue);
-				systemLogger().log(DEBUG, "ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+				logger().log(DEBUG, "Header: " + headerName + ":" + headerValue);
 			}
 			else if (header.getKey().equalsIgnoreCase("Authorization")) {
 				proxyRequest.headers().set(headerName, headerValue);
-				systemLogger().log(DEBUG, "ProxyWebClient::Request::Header: " + headerName + ":" + headerValue);
+				logger().log(DEBUG, "Header: " + headerName + ":" + headerValue);
 			}
 		}
 	}
@@ -373,12 +373,12 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 				forHeader = existingForHeader + ", " + forHeader;
 
 			proxyRequest.headers().set(forHeaderName, forHeader);
-			systemLogger().log(DEBUG, "ProxyWebClient::Request::Header: " + forHeaderName + ":" + forHeader);
+			logger().log(DEBUG, "Header: " + forHeaderName + ":" + forHeader);
 
 			String protoHeaderName = "X-Forwarded-Proto";
 			String protoHeader = serverRequestUriInfo.getScheme();
 			proxyRequest.headers().set(protoHeaderName, protoHeader);
-			systemLogger().log(DEBUG, "ProxyWebClient::Request::Header: " + protoHeaderName + ":" + protoHeader);
+			logger().log(DEBUG, "Header: " + protoHeaderName + ":" + protoHeader);
 		}
 	}
 	
@@ -413,7 +413,7 @@ public class ProxyWebClient extends AbstractProxyWebClient {
 		else
 			routingContext.response().headers().add(headerName, headerValue);
 
-		systemLogger().log(DEBUG, "ProxyWebClient::Response::Header: " + header.getKey() + ":" + header.getValue());
+		logger().log(DEBUG, "Header: " + header.getKey() + ":" + header.getValue());
 	}
 	
 	protected void copyProxyCookie(RoutingContext routingContext, String headerValue) {
