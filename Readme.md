@@ -1,14 +1,23 @@
 ## vertx-web-proxy - Example ##
 
 ```java
+ConcurrentCircuitBreakerForWebClient circuitBreaker = new ConcurrentCircuitBreakerForWebClient(vertx, 
+	new CircuitBreakerOptions()
+		.setMaxFailures(5)
+		.setTimeout(2_000)
+		.setResetTimeout(30_000));
+
 public class ServerVerticle extends AbstractVerticle {
 	@Override
 	public void start() throws Exception {
 		Router router = Router.router(vertx);
 		router.route().handler(CookieHandler.create());
 		router.route().handler(BodyHandler.create()
-				.setBodyLimit(-1)
-				.setDeleteUploadedFilesOnEnd(true));
+			.setBodyLimit(-1)
+            .setHandleFileUploads(true)
+			.setDeleteUploadedFilesOnEnd(true)
+        	.setMergeFormAttributes(true)
+        );
 		
 		proxyConfig(router);
 		
@@ -25,14 +34,9 @@ public class ServerVerticle extends AbstractVerticle {
 		
 		ProxyWebClientOptions proxyOptions = new ProxyWebClientOptions();
 		proxyOptions
-			.setLog(true);
-		
-		CircuitBreakerForWebClient circuitBreaker = new CircuitBreakerForWebClient(vertx, 
-				new CircuitBreakerOptions()
-					.setMaxFailures(3)
-					.setTimeout(5_000)
-					.setResetTimeout(2_000));
-		
+			.setLog(true)
+            .setForwardIP(false);
+
 		ProxyWebClient proxyWebClient = new ProxyWebClient(webClient, proxyOptions, circuitBreaker);
 		
 		Map<String, String> targetUris = new HashMap<>();
