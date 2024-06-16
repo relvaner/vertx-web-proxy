@@ -13,10 +13,10 @@ public class ServerVerticle extends AbstractVerticle {
 		Router router = Router.router(vertx);
 		router.route().handler(CookieHandler.create());
 		router.route().handler(BodyHandler.create()
-			.setBodyLimit(-1)
+        	.setBodyLimit(-1)
             .setHandleFileUploads(true)
-			.setDeleteUploadedFilesOnEnd(true)
-        	.setMergeFormAttributes(true)
+            .setDeleteUploadedFilesOnEnd(true)
+            .setMergeFormAttributes(true)
         );
 		
 		proxyConfig(router);
@@ -34,7 +34,7 @@ public class ServerVerticle extends AbstractVerticle {
 		
 		ProxyWebClientOptions proxyOptions = new ProxyWebClientOptions();
 		proxyOptions
-			.setLog(true)
+        	.setLog(true)
             .setForwardIP(false);
 
 		ProxyWebClient proxyWebClient = new ProxyWebClient(webClient, proxyOptions, circuitBreaker);
