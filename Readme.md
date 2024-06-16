@@ -17,7 +17,7 @@ public class ServerVerticle extends AbstractVerticle {
 			.setHandleFileUploads(true)
 			.setDeleteUploadedFilesOnEnd(true)
 			.setMergeFormAttributes(true)
-        );
+        	);
 		
 		proxyConfig(router);
 		
