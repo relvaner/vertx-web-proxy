@@ -25,9 +25,11 @@ public class ProxyWebClientOptions {
 	protected boolean preserveCookiesProxyPath = true;
 	protected boolean ssl = false;
 	
-	protected boolean circuitBreakerUseServerURL = true;
-	protected boolean circuitBreakerUseAbsoluteURI = false;
-	protected boolean circuitBreakerUseURLPattern = false;
+	protected int circuitBreakerMode = CIRCUIT_BREAKER_SERVER_URL;
+	
+	public static final int CIRCUIT_BREAKER_SERVER_URL   = 0;
+	public static final int CIRCUIT_BREAKER_ABSOLUTE_URI = 1;
+	public static final int CIRCUIT_BREAKER_URL_PATTERN  = 2;
 	
 	public ProxyWebClientOptions() {
 		super();
@@ -81,20 +83,8 @@ public class ProxyWebClientOptions {
 		return this;
 	}
 	
-	public ProxyWebClientOptions setCircuitBreakerUseServerURL(boolean circuitBreakerUseServerURL) {
-		this.circuitBreakerUseServerURL = circuitBreakerUseServerURL;
-		
-		return this;
-	}
-	
-	public ProxyWebClientOptions setCircuitBreakerUseAbsoluteURI(boolean circuitBreakerUseAbsoluteURI) {
-		this.circuitBreakerUseAbsoluteURI = circuitBreakerUseAbsoluteURI;
-		
-		return this;
-	}
-	
-	public ProxyWebClientOptions setCircuitBreakerUseURLPattern(boolean circuitBreakerUseURLPattern) {
-		this.circuitBreakerUseURLPattern = circuitBreakerUseURLPattern;
+	public ProxyWebClientOptions setCircuitBreakerMode(int circuitBreakerMode) {
+		this.circuitBreakerMode = circuitBreakerMode;
 		
 		return this;
 	}
@@ -104,8 +94,6 @@ public class ProxyWebClientOptions {
 		return "ProxyWebClientOptions [log=" + log + ", sendUrlFragment=" + sendUrlFragment + ", preserveHost="
 				+ preserveHost + ", preserveCookies=" + preserveCookies + ", forwardIP=" + forwardIP
 				+ ", preserveCookiesContextPath=" + preserveCookiesContextPath + ", preserveCookiesProxyPath="
-				+ preserveCookiesProxyPath + ", ssl=" + ssl + ", circuitBreakerUseServerURL="
-				+ circuitBreakerUseServerURL + ", circuitBreakerUseAbsoluteURI=" + circuitBreakerUseAbsoluteURI
-				+ ", circuitBreakerUseURLPattern=" + circuitBreakerUseURLPattern + "]";
+				+ preserveCookiesProxyPath + ", ssl=" + ssl + ", circuitBreakerMode=" + circuitBreakerMode + "]";
 	}
 }

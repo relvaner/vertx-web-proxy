@@ -25,6 +25,8 @@ import io.vertx.ext.web.client.WebClient;
 import vertx.web.proxy.utils.ConcurrentCircuitBreakerForWebClient;
 import vertx.web.proxy.utils.URIInfo;
 
+import static vertx.web.proxy.ProxyWebClientOptions.*;
+
 public class AbstractProxyWebClient {
 	protected WebClient proxyClient;
 	protected final ProxyWebClientOptions proxyWebClientOptions;
@@ -58,9 +60,9 @@ public class AbstractProxyWebClient {
 			domain = "/";
 		serverRequestUriInfo = URIInfo.create(routingContext.request().absoluteURI(), domain);
 		
-		if (proxyWebClientOptions.circuitBreakerUseServerURL)
+		if (proxyWebClientOptions.circuitBreakerMode==CIRCUIT_BREAKER_SERVER_URL)
 			urlPattern = serverRequestUriInfo.getServerURL();
-		else if (proxyWebClientOptions.circuitBreakerUseAbsoluteURI)
+		else if (proxyWebClientOptions.circuitBreakerMode==CIRCUIT_BREAKER_ABSOLUTE_URI)
 			urlPattern = routingContext.request().absoluteURI();
 		
 		final String urlPattern_ = urlPattern;
